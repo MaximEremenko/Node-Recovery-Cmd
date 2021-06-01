@@ -151,9 +151,25 @@
     <ClInclude Include="FieldDefs.h" />
     <ClInclude Include="FieldElement.h" />
     <ClInclude Include="ConstructionDefs.h" />
+    <ClInclude Include="gf_complete.h" />
+    <ClInclude Include="gf_general.h" />
+    <ClInclude Include="gf_int.h" />
+    <ClInclude Include="gf_method.h" />
+    <ClInclude Include="gf_rand.h" />
     <ClInclude Include="Node.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="gf.c" />
+    <ClCompile Include="gf_general.c" />
+    <ClCompile Include="gf_method.c" />
+    <ClCompile Include="gf_rand.c" />
+    <ClCompile Include="gf_w128.c" />
+    <ClCompile Include="gf_w16.c" />
+    <ClCompile Include="gf_w32.c" />
+    <ClCompile Include="gf_w4.c" />
+    <ClCompile Include="gf_w64.c" />
+    <ClCompile Include="gf_w8.c" />
+    <ClCompile Include="gf_wgen.c" />
     <ClCompile Include="node_recover_cmd.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

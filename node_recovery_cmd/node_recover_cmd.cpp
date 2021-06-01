@@ -7,8 +7,11 @@
 #include <errno.h>
 #include <vector>
 #include <list>
-#include <chrono>
-#include <omp.h>
+#include <getopt.h>
+#include <stdint.h>
+#include <string.h>
+#include <stdlib.h>
+#include <sys/time.h>
 
 #include "Node.h"
 #include "FieldDefs.h"
@@ -20,6 +23,98 @@ using namespace std;
 //=======================================================================================================================================
 //=============================================================== Auxiliary functions ===================================================
 //=======================================================================================================================================
+
+// Time handling procedures
+void timer_start(double* t)
+{
+    struct timeval  tv;
+
+    gettimeofday(&tv, NULL);
+    *t = (double)tv.tv_sec + (double)tv.tv_usec * 1e-6;
+}
+
+double timer_split(const double* t)
+{
+    struct timeval  tv;
+    double  cur_t;
+
+    gettimeofday(&tv, NULL);
+    cur_t = (double)tv.tv_sec + (double)tv.tv_usec * 1e-6;
+    return (cur_t - *t);
+}
+
+void ext_vand4_inv(fe_type B[4][4], fe_type a, fe_type b, fe_type c, fe_type d)
+{
+    fe_type ab = a ^ b;
+    fe_type ac = a ^ c;
+    fe_type ad = a ^ d;
+    fe_type bc = b ^ c;
+    fe_type bd = b ^ d;
+    fe_type cd = c ^ d;
+    fe_type abcd = ab ^ cd;
+
+    fe_type a_b = GF_W16_INLINE_MULT(LOG16, ALOG16, a, b);
+    fe_type c_d = GF_W16_INLINE_MULT(LOG16, ALOG16, c, d);
+    fe_type a_b_c_d = GF_W16_INLINE_MULT(LOG16, ALOG16, a_b, c_d);
+    fe_type c_c = GF_W16_INLINE_MULT(LOG16, ALOG16, c, c);
+    fe_type d_d = GF_W16_INLINE_MULT(LOG16, ALOG16, d, d);
+
+    fe_type w0 = GF_W16_INLINE_MULT(LOG16, ALOG16, ab, ac);
+    w0 = GF_W16_INLINE_MULT(LOG16, ALOG16, w0, ad);
+
+    fe_type w0_a = GF_W16_INLINE_MULT(LOG16, ALOG16, w0, a);
+
+    fe_type w1 = GF_W16_INLINE_MULT(LOG16, ALOG16, ab, bc); 
+    w1 = GF_W16_INLINE_MULT(LOG16, ALOG16, w1, bd);
+
+    fe_type w1_b = GF_W16_INLINE_MULT(LOG16, ALOG16, w1, b);
+
+    fe_type w2 = GF_W16_INLINE_MULT(LOG16, ALOG16, ac, bc);
+    w2 = GF_W16_INLINE_MULT(LOG16, ALOG16, w2, cd);
+
+    fe_type w2_c = GF_W16_INLINE_MULT(LOG16, ALOG16, w2, c);
+
+    fe_type w3 = GF_W16_INLINE_MULT(LOG16, ALOG16, ad, bd); 
+    w3 = GF_W16_INLINE_MULT(LOG16, ALOG16, w3, cd);
+
+    fe_type w3_d = GF_W16_INLINE_MULT(LOG16, ALOG16, w3, d);
+
+    B[0][0] = GF_W16_INLINE_DIV(LOG16, ALOG16, a_b_c_d, w0_a);
+    
+    B[0][1] = GF_W16_INLINE_MULT(LOG16, ALOG16, bd, cd)^d_d;
+    B[0][1] = GF_W16_INLINE_DIV(LOG16, ALOG16, B[0][1], w0);
+    
+    B[0][2] = GF_W16_INLINE_DIV(LOG16, ALOG16, abcd^a, w0);
+
+    B[0][3] = GF_W16_INLINE_DIV(LOG16, ALOG16, 1, w0);
+
+    B[1][0] = GF_W16_INLINE_DIV(LOG16, ALOG16, a_b_c_d, w1_b);
+
+    B[1][1] = GF_W16_INLINE_MULT(LOG16, ALOG16, ad, cd) ^ d_d;
+    B[1][1] = GF_W16_INLINE_DIV(LOG16, ALOG16, B[1][1], w1);
+
+    B[1][2] = GF_W16_INLINE_DIV(LOG16, ALOG16, abcd ^ b, w1);
+
+    B[1][3] = GF_W16_INLINE_DIV(LOG16, ALOG16, 1, w1);
+
+    B[2][0] = GF_W16_INLINE_DIV(LOG16, ALOG16, a_b_c_d, w2_c);
+
+    B[2][1] = GF_W16_INLINE_MULT(LOG16, ALOG16, ad, bd) ^ d_d;
+    B[2][1] = GF_W16_INLINE_DIV(LOG16, ALOG16, B[2][1], w2);
+
+    B[2][2] = GF_W16_INLINE_DIV(LOG16, ALOG16, abcd ^ c, w2);
+
+    B[2][3] = GF_W16_INLINE_DIV(LOG16, ALOG16, 1, w2);
+
+    B[3][0] = GF_W16_INLINE_DIV(LOG16, ALOG16, a_b_c_d, w3_d);
+
+    B[3][1] = GF_W16_INLINE_MULT(LOG16, ALOG16, ac, bc) ^ d_d;
+    B[3][1] = GF_W16_INLINE_DIV(LOG16, ALOG16, B[3][1], w3);
+
+    B[3][2] = GF_W16_INLINE_DIV(LOG16, ALOG16, abcd ^ d, w3);
+
+    B[3][3] = GF_W16_INLINE_DIV(LOG16, ALOG16, 1, w3);
+}
 
 // Inversion of Vandermond matrix of size 4x4
 void vand4_inv(FieldElement B[4][4], FieldElement a, FieldElement b, FieldElement c, FieldElement d)
@@ -138,6 +233,243 @@ void curr_pos_get(unsigned int* pos, unsigned int* lambda_ids, int curr_matr_A_i
 //=============================================================== Recovery procedures ===================================================
 //=======================================================================================================================================
 
+uint8_t sameLambdaData[154][4][512]; //[NodeId][LambdaId][Data]
+uint8_t sameLambdaRes[5][4][4][512]; //[AId][LambdaId][Pow][Data]
+unsigned int sameLambdaDataCounter[154][4];
+unsigned int sameLambdaResCounter[5][4]; //[AId][LambdaId]
+
+//fe_type* pArray2Vector[5][1024]; //[AId][Pointer to Data]
+
+//fe_type resVectors[4][1024]; //[Pow][Data]
+
+fe_type coeffPow[154][4][4]; //[NodeId][LanbdaId][Pow]
+fe_type recNodesCoeff[1024][4];
+
+unsigned int availNodes[5][31];
+unsigned int availNodesCounter[5];
+
+uint8_t* dataSrc[2400];
+uint8_t* resDst[2400];
+gf_val_32_t currCoeff[2400];
+
+// 4 nodes recovery procedure extended
+double ext_recover_4_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes, double* inneTime1, double* innerTime2)
+{
+    int lambdasIdx[5] = { 0, 0, 0, 0, 0 };
+    int i = 0, j = 0, k = 0, v = 0;
+    unsigned int AIdx = 0, lambdaId = 0, nodeId = 0;
+    fe_type *pCurrData = 0, *pCurrRes = 0;
+    fe_type currCol[4] = { 0, 0, 0, 0 };
+    fe_type recData[4] = { 0, 0, 0, 0 };
+    fe_type invMatr[4][4] = { {0,0,0,0}, {0,0,0,0}, {0,0,0,0}, {0,0,0,0} };
+
+    for (i = 0; i < 4; ++i)
+        for (j = 0; j < 154; ++j)
+            sameLambdaDataCounter[j][i] = 0;
+
+    for (i = 0; i < 512; ++i)
+        for (j = 0; j < 4; ++j)
+            for (k = 0; k < 4; ++k)
+                for (v = 0; v < 5; ++v)
+                    sameLambdaRes[v][k][j][i] = (uint8_t)0;
+
+    for (i = 0; i < 4; ++i)
+        for (j = 0; j < 5; ++j)
+            sameLambdaResCounter[j][i] = 0;
+
+    for (i = 0; i < 5; ++i)
+        availNodesCounter[i] = 0;
+
+    for (i = 0; i < 1024; ++i)
+    {
+        lambdasIdx[0] = (i & 0x3); //11
+        lambdasIdx[1] = (i & 0xC) >> 2; //1100
+        lambdasIdx[2] = (i & 0x30) >> 4; //110000
+        lambdasIdx[3] = (i & 0xC0) >> 6; //11000000
+        lambdasIdx[4] = (i & 0x300) >> 8; //1100000000
+
+
+        for (j = 0; j < 154; ++j)
+        {
+            AIdx = AIdxArray[j];
+            lambdaId = lambdasIdx[AIdx];
+
+            pCurrData = (fe_type*)(&sameLambdaData[j][lambdaId][0]);
+            pCurrData[sameLambdaDataCounter[j][lambdaId]] = pNodes[j].getData(i).getElement();
+            ++sameLambdaDataCounter[j][lambdaId];
+
+            coeffPow[j][lambdaId][0] = (fe_type)1;
+            coeffPow[j][lambdaId][1] = GF_W16_INLINE_MULT(LOG16, ALOG16, sigmas[j], lambdas[AIdx][lambdaId]);
+            coeffPow[j][lambdaId][2] = GF_W16_INLINE_MULT(LOG16, ALOG16, sigmas_pow2[j], lambdas_pow2[AIdx][lambdaId]);
+            coeffPow[j][lambdaId][3] = GF_W16_INLINE_MULT(LOG16, ALOG16, sigmas_pow3[j], lambdas_pow3[AIdx][lambdaId]);
+
+            if (j == pNodesToRecoverIdx[0])
+                recNodesCoeff[i][0] = coeffPow[j][lambdaId][1];
+            else if (j == pNodesToRecoverIdx[1])
+                recNodesCoeff[i][1] = coeffPow[j][lambdaId][1];
+            else if (j == pNodesToRecoverIdx[2])
+                recNodesCoeff[i][2] = coeffPow[j][lambdaId][1];
+            else if (j == pNodesToRecoverIdx[3])
+                recNodesCoeff[i][3] = coeffPow[j][lambdaId][1];
+        }
+
+        /*for (AIdx = 0; AIdx < 5; ++AIdx)
+        {
+            lambdaId = lambdasIdx[AIdx];
+
+            pCurrRes = (fe_type*)(&sameLambdaRes[AIdx][lambdaId][0]);
+            pArray2Vector[AIdx][i] = &pCurrRes[sameLambdaResCounter[AIdx][lambdaId]];
+            ++sameLambdaResCounter[AIdx][lambdaId];
+        }*/
+    }
+
+    for (i = 0; i < 154; ++i)
+    {
+        if (i != pNodesToRecoverIdx[0] &&
+            i != pNodesToRecoverIdx[1] &&
+            i != pNodesToRecoverIdx[2] &&
+            i != pNodesToRecoverIdx[3])
+        {
+            AIdx = AIdxArray[i];
+
+            availNodes[AIdx][availNodesCounter[AIdx]] = i;
+            ++availNodesCounter[AIdx];
+        }
+    }
+
+    unsigned int counter = 0;
+    for (j = 0; j < 4; ++j)
+    {
+        for (AIdx = 0; AIdx < 5; ++AIdx)
+        {
+            for (i = 0; i < availNodesCounter[AIdx]; ++i)
+            {
+                nodeId = availNodes[AIdx][i];
+
+                for (k = 0; k < 4; ++k)
+                {
+                    dataSrc[counter] = &sameLambdaData[nodeId][k][0];
+                    resDst[counter] = &sameLambdaRes[AIdx][k][j][0];
+                    currCoeff[counter] = coeffPow[nodeId][k][j];
+                    ++counter;
+                }
+            }
+        }
+    }
+
+    //uint8_t* src, * dst;
+    //gf_val_32_t coeff = 0;
+
+    double start_time = 0;
+    double start_time2 = 0;
+    timer_start(&start_time);
+    //auto start_time = chrono::high_resolution_clock::now();
+
+    for (i = 0; i < 2400; ++i)
+    {
+        GF.multiply_region.w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
+    }
+
+    //for (j = 0; j < 4; ++j)
+    //{
+    //    for (AIdx = 0; AIdx < 5; ++AIdx)
+    //    {
+    //        for (i = 0; i < availNodesCounter[AIdx]; ++i)
+    //        {
+    //            nodeId = availNodes[AIdx][i];
+
+    //            for (k = 0; k < 4; ++k)
+    //            {
+    //                src = &sameLambdaData[nodeId][0][0];
+    //                dst = &sameLambdaRes[AIdx][0][j][0];
+    //                coeff = coeffPow[nodeId][0][j];
+    //                //GF.multiply_region.w32(&GF, src, dst, coeff, 512, 1);
+    //            }
+
+    //            //GF.multiply_region.w32(&GF, &sameLambdaData[nodeId][0][0], &sameLambdaRes[AIdx][0][j][0], coeffPow[nodeId][0][j], 512, 1);
+    //            //GF.multiply_region.w32(&GF, &sameLambdaData[nodeId][1][0], &sameLambdaRes[AIdx][1][j][0], coeffPow[nodeId][1][j], 512, 1);
+    //            //GF.multiply_region.w32(&GF, &sameLambdaData[nodeId][2][0], &sameLambdaRes[AIdx][2][j][0], coeffPow[nodeId][2][j], 512, 1);
+    //            //GF.multiply_region.w32(&GF, &sameLambdaData[nodeId][3][0], &sameLambdaRes[AIdx][3][j][0], coeffPow[nodeId][3][j], 512, 1);
+    //        }
+    //    }
+
+    //   /* for (i = 0; i < 1024; ++i)
+    //    {
+    //        resVectors[j][i] = (*(pArray2Vector[0][i])) ^ (*(pArray2Vector[1][i])) ^ (*(pArray2Vector[2][i])) ^ (*(pArray2Vector[3][i])) ^ (*(pArray2Vector[4][i]));
+    //    }*/
+    //}
+     *inneTime1 = timer_split(&start_time);
+     
+     timer_start(&start_time2);
+
+    for (i = 0; i < 1024; ++i)
+    {
+        for (j = 0; j < 4; ++j)
+            currCol[j] = 0;
+
+        lambdasIdx[0] = (i & 0x3); //11
+        lambdasIdx[1] = (i & 0xC) >> 2; //1100
+        lambdasIdx[2] = (i & 0x30) >> 4; //110000
+        lambdasIdx[3] = (i & 0xC0) >> 6; //11000000
+        lambdasIdx[4] = (i & 0x300) >> 8; //1100000000
+
+        for (AIdx = 0; AIdx < 5; ++AIdx)
+        {
+            lambdaId = lambdasIdx[AIdx];
+            
+            pCurrData = (fe_type*)(&sameLambdaRes[AIdx][lambdaId][0][0]);
+            currCol[0] ^= pCurrData[sameLambdaResCounter[AIdx][lambdaId]];
+
+            pCurrData = (fe_type*)(&sameLambdaRes[AIdx][lambdaId][1][0]);
+            currCol[1] ^= pCurrData[sameLambdaResCounter[AIdx][lambdaId]];
+
+            pCurrData = (fe_type*)(&sameLambdaRes[AIdx][lambdaId][2][0]);
+            currCol[2] ^= pCurrData[sameLambdaResCounter[AIdx][lambdaId]];
+
+            pCurrData = (fe_type*)(&sameLambdaRes[AIdx][lambdaId][3][0]);
+            currCol[3] ^= pCurrData[sameLambdaResCounter[AIdx][lambdaId]];
+
+            ++sameLambdaResCounter[AIdx][lambdaId];
+        }
+
+        ext_vand4_inv(invMatr, recNodesCoeff[i][0], recNodesCoeff[i][2], recNodesCoeff[i][3], recNodesCoeff[i][4]);
+
+        recData[0]  = GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[0][0], currCol[0]);
+        recData[0] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[0][1], currCol[1]);
+        recData[0] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[0][2], currCol[2]);
+        recData[0] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[0][3], currCol[3]);
+
+        recData[1] = GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[1][0], currCol[0]);
+        recData[1] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[1][1], currCol[1]);
+        recData[1] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[1][2], currCol[2]);
+        recData[1] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[1][3], currCol[3]);
+
+        recData[2] = GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[2][0], currCol[0]);
+        recData[2] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[2][1], currCol[1]);
+        recData[2] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[2][2], currCol[2]);
+        recData[2] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[2][3], currCol[3]);
+
+        recData[3] = GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[3][0], currCol[0]);
+        recData[3] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[3][1], currCol[1]);
+        recData[3] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[3][2], currCol[2]);
+        recData[3] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[3][3], currCol[3]);
+
+        //pNodes[pNodesToRecoverIdx[0]].setData(i, currRecData[0]);
+        //pNodes[pNodesToRecoverIdx[1]].setData(i, currRecData[1]);
+        //pNodes[pNodesToRecoverIdx[2]].setData(i, currRecData[2]);
+        //pNodes[pNodesToRecoverIdx[3]].setData(i, currRecData[3]);
+
+    }
+
+    *innerTime2 = timer_split(&start_time2);
+
+    //auto end_time = chrono::high_resolution_clock::now();
+    //auto elapsed_time = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
+    double elapsed_time = timer_split(&start_time);
+
+    return elapsed_time; //(double)elapsed_time.count();
+}
+
 // Definitions of global auxiliary variables for 2, 3 and 4 nodes recovery procedures
 FieldElement AData[1024][5][31];
 FieldElement ACol[1024][5][3];
@@ -246,7 +578,9 @@ double recover_4_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
         }
     }
 
-    auto start_time = chrono::high_resolution_clock::now();
+    double start_time = 0;
+    timer_start(&start_time);
+    //auto start_time = chrono::high_resolution_clock::now();
 
     for (i = 0; i < 1024; ++i)
     {   
@@ -284,10 +618,11 @@ double recover_4_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
 
     }
 
-    auto end_time = chrono::high_resolution_clock::now();
-    auto elapsed_time = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
+    //auto end_time = chrono::high_resolution_clock::now();
+    //auto elapsed_time = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
+    double elapsed_time = timer_split(&start_time);
 
-    return (double)elapsed_time.count();
+    return elapsed_time; //(double)elapsed_time.count();
 }
 
 // 3 nodes recovery procedure
@@ -371,7 +706,9 @@ double recover_3_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
         }
     }
 
-    auto start_time = chrono::high_resolution_clock::now();
+    double start_time = 0;
+    timer_start(&start_time);
+    //auto start_time = chrono::high_resolution_clock::now();
 
     for (i = 0; i < 1024; ++i)
     {
@@ -405,10 +742,11 @@ double recover_3_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
 
     }
 
-    auto end_time = chrono::high_resolution_clock::now();
-    auto elapsed_time = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
+    //auto end_time = chrono::high_resolution_clock::now();
+    //auto elapsed_time = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
+    double elapsed_time = timer_split(&start_time);
 
-    return (double)elapsed_time.count();
+    return elapsed_time; //(double)elapsed_time.count();
 }
 
 // 2 nodes recovery procedure
@@ -485,7 +823,9 @@ double recover_2_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
         }
     }
 
-    auto start_time = chrono::high_resolution_clock::now();
+    double start_time = 0;
+    timer_start(&start_time);
+    //auto start_time = chrono::high_resolution_clock::now();
 
     for (i = 0; i < 1024; ++i)
     {
@@ -514,10 +854,11 @@ double recover_2_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
 
     }
 
-    auto end_time = chrono::high_resolution_clock::now();
-    auto elapsed_time = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
+    //auto end_time = chrono::high_resolution_clock::now();
+    //auto elapsed_time = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
+    double elapsed_time = timer_split(&start_time);
 
-    return (double)elapsed_time.count();
+    return elapsed_time; //(double)elapsed_time.count();
 }
 
 // 1 node recovery procedure
@@ -634,7 +975,9 @@ double recover_1_node(unsigned int* pNodesToRecoverIdx, Node* pNodes)
         sameACol[i][2] = FieldElement(lambdas_pow3[nodeToRecAIdx][i]);
     }
 
-    auto start_time = chrono::high_resolution_clock::now();
+    double start_time = 0;
+    timer_start(&start_time);
+    //auto start_time = chrono::high_resolution_clock::now();
 
     for (subBlockIdx = 0; subBlockIdx < 256; ++subBlockIdx)
     {
@@ -697,10 +1040,11 @@ double recover_1_node(unsigned int* pNodesToRecoverIdx, Node* pNodes)
         pNodes[nodeToRecIdx].setData(posArray[subBlockIdx][3], recData[3]);
     }
 
-    auto end_time = chrono::high_resolution_clock::now();
-    auto elapsed_time = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
+    //auto end_time = chrono::high_resolution_clock::now();
+    //auto elapsed_time = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
+    double elapsed_time = timer_split(&start_time);
 
-    return (double)elapsed_time.count();
+    return elapsed_time; //(double)elapsed_time.count();
 }
 
 //=======================================================================================================================================
@@ -709,18 +1053,69 @@ double recover_1_node(unsigned int* pNodesToRecoverIdx, Node* pNodes)
 
 
 double elapsed_time[10000] = { 0 };
+double inner_time1[10000] = { 0 };
+double inner_time2[10000] = { 0 };
+
 FieldElement testData[1024];
 Node pNodes[154];
 Node pTestNodes[4];
 
+uint8_t src[2048];
+uint8_t dst[2048];
+fe_type a[1000];
+
 int main()
 {
+    if (!gf_init_easy(&GF, 16))
+    {
+        printf("GF initialization FAILED!\n");
+        exit(1);
+    }
+
+    LOG16 = gf_w16_get_log_table(&GF);
+    ALOG16 = gf_w16_get_mult_alog_table(&GF);
+
+
+    /*fe_type* currData = (fe_type*)(&src[0]);
+
+    for (unsigned int i = 0; i < 1024; ++i)
+    {
+        currData[i] = (fe_type)(rand() % (1 << 16));
+    }
+
+    for (unsigned int i = 0; i < 1000; ++i)
+    {
+        a[i] = (fe_type)(rand() % (1 << 16));
+    }
+
+    double start_time = 0;
+    timer_start(&start_time);
+
+    for (unsigned int i = 0; i < 1000; ++i)
+    {
+        GF.multiply_region.w32(&GF, &src[0], &dst[0], a[i], 2048, 1);
+    }
+
+    double curr_time = timer_split(&start_time);
+
+    currData = (fe_type*)(&dst[0]);
+    fe_type res = currData[0];
+    for (unsigned int i = 1; i < 1024; ++i)
+    {
+        res ^= currData[i];
+    }
+
+    printf("Time: %f usec\n", curr_time * 1e6);
+    printf("Speed: %g Mb/s\n", ((double)(16 * 1000)) / (1024*curr_time));
+    printf("Res.: 0x%04x\n", res);
+
+    exit(0);*/
 
     for (unsigned int i = 0; i < 154; ++i)
     {
         for (unsigned int j = 0; j < 1024; ++j)
         {
-            testData[j] = FieldElement((fe_type)(rand() % (1 << 12)));
+            testData[j] = FieldElement((fe_type)(rand() % (1 << 16)));
         }
         pNodes[i] = Node(FieldElement(sigmas[i]), testData);
     }
@@ -862,7 +1257,7 @@ int main()
     unsigned int rndId = 0;
 
     printf("\n==Reconstruction speed test:\n");
-    for (nodesToRecoverNum = 1; nodesToRecoverNum < 5; ++nodesToRecoverNum)
+    for (nodesToRecoverNum = 4; nodesToRecoverNum < 5; ++nodesToRecoverNum)
     {
         printf("---- %d nodes reconstruction:\n", nodesToRecoverNum);
         for (int tests = 0; tests < testsNum; ++tests)
@@ -873,7 +1268,7 @@ int main()
             {
                 for (unsigned int j = 0; j < 1024; ++j)
                 {
-                    testData[j] = FieldElement((fe_type)(rand() % (1 << 12)));
+                    testData[j] = FieldElement((fe_type)(rand() % (1 << 16)));
                 }
                 pNodes[i] = Node(FieldElement(sigmas[i]), testData);
             }
@@ -895,7 +1290,7 @@ int main()
                 elapsed_time[tests] = recover_3_nodes(pTestNodesToRecoverIdx, pNodes);
                 break;
             case 4:
-                elapsed_time[tests] = recover_4_nodes(pTestNodesToRecoverIdx, pNodes);
+                elapsed_time[tests] = ext_recover_4_nodes(pTestNodesToRecoverIdx, pNodes, &(inner_time1[tests]), &(inner_time2[tests]));
                 break;
             default:
                 printf("Invalid number of nodes to recover!");
@@ -905,22 +1300,27 @@ int main()
         printf("\n");
 
         double whole_elapsed_time = 0, max_elapsed_time = 0, min_elapsed_time = 1000;
+        double whole_inner_time1 = 0, whole_inner_time2 = 0;
 
         for (int i = 0; i < testsNum; ++i)
         {
             whole_elapsed_time += elapsed_time[i];
+            whole_inner_time1 += inner_time1[i];
+            whole_inner_time2 += inner_time2[i];
             if (elapsed_time[i] < min_elapsed_time)
                 min_elapsed_time = elapsed_time[i];
             if (elapsed_time[i] > max_elapsed_time)
                 max_elapsed_time = elapsed_time[i];
         }
 
-        printf("Av. elapsed time: %f usec\n", whole_elapsed_time / testsNum);
-        printf("  min. elapsed time: %f usec\n", min_elapsed_time);
-        printf("  max. elapsed time: %f usec\n", max_elapsed_time);
-        printf("Av. speed: %g Mb/s\n", ((double)(nodesToRecoverNum) * 1024 * 12 * testsNum) / (whole_elapsed_time));
-        printf("  max. speed: %g Mb/s\n", ((double)(nodesToRecoverNum) * 1024 * 12) / (min_elapsed_time));
-        printf("  min. speed: %g Mb/s\n", ((double)(nodesToRecoverNum) * 1024 * 12) / (max_elapsed_time));
+        printf("Av. elapsed time: %f usec\n", (whole_elapsed_time * 1e6) / testsNum);
+        printf("  min. elapsed time: %f usec\n", min_elapsed_time * 1e6);
+        printf("  max. elapsed time: %f usec\n", max_elapsed_time * 1e6);
+        printf("Inner time 1: %f usec\n", (whole_inner_time1 * 1e6) / testsNum);
+        printf("Inner time 2: %f usec\n", (whole_inner_time2 * 1e6) / testsNum);
+        printf("Av. speed: %g Mb/s\n", ((double)(nodesToRecoverNum) * 1024 * 16 * testsNum) / (whole_elapsed_time * 1e6));
+        printf("  max. speed: %g Mb/s\n", ((double)(nodesToRecoverNum) * 1024 * 16) / (min_elapsed_time * 1e6));
+        printf("  min. speed: %g Mb/s\n", ((double)(nodesToRecoverNum) * 1024 * 16) / (max_elapsed_time * 1e6));
     }
 
     return 0;
