@@ -5,6 +5,12 @@ include_directories(
   ../
   ./
 )
+#if (WIN32)
+#include_directories(
+#  ./sys
+#)
+#endif()
+
 # CMake instructions to make the static lib
 add_library( gf_complete STATIC
              gf.c 
@@ -21,4 +27,5 @@ add_library( gf_complete STATIC
 			 gf_w32.c
 			 gf_w64.c
 			 gf_w128.c
-			 gf_wgen.c)
+			 gf_wgen.c
+			 )

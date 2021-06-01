@@ -1,30 +1,31 @@
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 
 include_directories(
-  ../
   ./
-  ./field
-  ./main
-  ./gf_complete
+  ../src/field
+  ../src/main
+  ../src/gf_complete
 )
+
 #add_subdirectory(field)
 add_subdirectory(gf_complete)
+add_subdirectory(main)
 link_directories(.)
 if (WIN32)
   add_executable(NodeRecoveryCmd 
-    node_recover_cmd.cpp
-    Node.h
-	ConstructionDefs.h
-	FieldDefs.h
-	FieldElement.h
+    main/node_recover_cmd.cpp
+    main/Node.h
+	main/ConstructionDefs.h
+	field/FieldDefs.h
+	field/FieldElement.h
   )
 else()
   add_executable(NodeRecoveryCmd 
-    node_recover_cmd.cpp
-    Node.h
-	ConstructionDefs.h
-	FieldDefs.h
-	FieldElement.h
+    main/node_recover_cmd.cpp
+    main/Node.h
+	main/ConstructionDefs.h
+	field/FieldDefs.h
+	field/FieldElement.h
 )
 endif()
 

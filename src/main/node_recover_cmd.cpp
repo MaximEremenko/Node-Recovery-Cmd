@@ -7,12 +7,21 @@
 #include <errno.h>
 #include <vector>
 #include <list>
+
+#ifdef _WIN32
+#include "./getopt.h"
+#else
 #include <getopt.h>
+#endif
+
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
+#ifdef _WIN32
+#include "sys/time.h"
+#else
 #include <sys/time.h>
-
+#endif
 #include "Node.h"
 #include "FieldDefs.h"
 #include "FieldElement.h"
