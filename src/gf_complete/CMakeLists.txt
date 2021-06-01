@@ -28,4 +28,7 @@ add_library( gf_complete STATIC
 			 gf_w64.c
 			 gf_w128.c
 			 gf_wgen.c
+			 ./sys/time.cpp
+			 ./sys/time.h
+			 ./sys/times.h
 			 )

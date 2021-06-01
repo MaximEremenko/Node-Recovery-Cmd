@@ -17,7 +17,7 @@
 
 extern void     timer_start (double *t);
 extern double   timer_split (const double *t);
-extern void     galois_fill_random (void *buf, int len, unsigned int seed);
+extern char     galois_fill_random (char*buf, int len, unsigned int seed);
 
 typedef struct {
   int mult_type;
@@ -29,7 +29,7 @@ typedef struct {
   int arg1;
   int arg2;
   gf_t *base_gf;
-  void *private;
+  char *private;
 } gf_internal_t;
 
 extern int gf_w4_init (gf_t *gf);
@@ -53,10 +53,10 @@ extern int gf_w128_scratch_size(int mult_type, int region_type, int divide_type,
 extern int gf_wgen_init (gf_t *gf);
 extern int gf_wgen_scratch_size(int w, int mult_type, int region_type, int divide_type, int arg1, int arg2);
 
-void gf_wgen_cauchy_region(gf_t *gf, void *src, void *dest, gf_val_32_t val, int bytes, int xor);
-gf_val_32_t gf_wgen_extract_word(gf_t *gf, void *start, int bytes, int index);
+char gf_wgen_cauchy_region(gf_t *gf, char*src, char*dest, gf_val_32_t val, int bytes, int xor);
+gf_val_32_t gf_wgen_extract_word(gf_t *gf, char*start, int bytes, int index);
 
-extern void gf_alignment_error(char *s, int a);
+extern char gf_alignment_error(char *s, int a);
 
 extern uint32_t gf_bitmatrix_inverse(uint32_t y, int w, uint32_t pp);
 
@@ -71,24 +71,24 @@ extern uint64_t gf_composite_get_default_poly(gf_t *base);
 
 typedef struct {
   gf_t *gf;
-  void *src;
-  void *dest;
+  char*src;
+  char*dest;
   int bytes;
   uint64_t val;
   int xor;
   int align;           /* The number of bytes to which to align. */
-  void *s_start;       /* The start and the top of the aligned region. */
-  void *d_start;
-  void *s_top;
-  void *d_top;
+  char*s_start;       /* The start and the top of the aligned region. */
+  char*d_start;
+  char*s_top;
+  char*d_top;
 } gf_region_data;
 
 /* This lets you set up one of these in one call. It also sets the start/top pointers. */
 
 void gf_set_region_data(gf_region_data *rd,
                         gf_t *gf,
-                        void *src,
-                        void *dest,
+                        char *src,
+                        char *dest,
                         int bytes,
                         uint64_t val,
                         int xor,

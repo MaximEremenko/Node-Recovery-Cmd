@@ -1650,7 +1650,7 @@ gf_w128_composite_multiply_region(gf_t *gf, void *src, void *dest, gf_val_128_t 
 
 static
 void
-gf_w128_composite_multiply_region_alt(gf_t *gf, void *src, void *dest, gf_val_128_t val, int bytes, int 
+gf_w128_composite_multiply_region_alt(gf_t *gf, char*src, char*dest, gf_val_128_t val, int bytes, int
     xor)
 {
   gf_internal_t *h = (gf_internal_t *) gf->scratch;  gf_t *base_gf = h->base_gf;

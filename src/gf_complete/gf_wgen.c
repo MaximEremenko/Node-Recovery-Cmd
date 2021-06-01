@@ -898,7 +898,7 @@ int gf_wgen_scratch_size(int w, int mult_type, int region_type, int divide_type,
 }
 
 void
-gf_wgen_cauchy_region(gf_t *gf, void *src, void *dest, gf_val_32_t val, int bytes, int xor)
+gf_wgen_cauchy_region(gf_t *gf, char*src, char*dest, gf_val_32_t val, int bytes, int xor)
 {
   gf_internal_t *h;
   gf_region_data rd;

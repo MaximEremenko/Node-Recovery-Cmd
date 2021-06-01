@@ -12,6 +12,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+
+
 #define GF_FIELD_WIDTH      4
 #define GF_DOUBLE_WIDTH     (GF_FIELD_WIDTH*2)
 #define GF_FIELD_SIZE       (1 << GF_FIELD_WIDTH)

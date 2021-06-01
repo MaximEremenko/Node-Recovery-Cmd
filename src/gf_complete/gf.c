@@ -642,7 +642,7 @@ void gf_two_byte_region_table_multiply(gf_region_data *rd, uint16_t *base)
   }
 }
 
-static void gf_slow_multiply_region(gf_region_data *rd, void *src, void *dest, void *s_top)
+static void gf_slow_multiply_region(gf_region_data *rd, char *src, char*dest, char*s_top)
 {
   uint8_t *s8, *d8;
   uint16_t *s16, *d16;
@@ -768,8 +768,8 @@ static void gf_slow_multiply_region(gf_region_data *rd, void *src, void *dest, v
 
 void gf_set_region_data(gf_region_data *rd,
   gf_t *gf,
-  void *src,
-  void *dest,
+  char *src,
+  char *dest,
   int bytes,
   uint64_t val,
   int xor,
@@ -861,7 +861,7 @@ void gf_do_final_region_alignment(gf_region_data *rd)
   gf_slow_multiply_region(rd, rd->s_top, rd->d_top, rd->src+rd->bytes);
 }
 
-void gf_multby_zero(void *dest, int bytes, int xor) 
+void gf_multby_zero(char *dest, int bytes, int xor) 
 {
   if (xor) return;
   bzero(dest, bytes);
@@ -992,7 +992,7 @@ void gf_multby_one(void *src, void *dest, int bytes, int xor)
 
 #define UNALIGNED_BUFSIZE (8)
 
-static void gf_unaligned_xor(void *src, void *dest, int bytes)
+static void gf_unaligned_xor(char*src, char*dest, int bytes)
 {
   uint64_t scopy[UNALIGNED_BUFSIZE], *d64;
   int i;
