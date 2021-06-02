@@ -415,6 +415,11 @@ double ext_recover_4_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes, doubl
      //*inneTime1 = timer_split(&start_time);
      
      //timer_start(&start_time2);
+    auto  innerTime1End = chrono::high_resolution_clock::now();
+    auto  inner1Elapsed = chrono::duration_cast<chrono::microseconds>(innerTime1End - start_time);
+    *inneTime1 = std::chrono::duration<double>(inner1Elapsed).count();
+
+    auto innerTime2start = chrono::high_resolution_clock::now();
 
     for (i = 0; i < 1024; ++i)
     {
@@ -474,7 +479,9 @@ double ext_recover_4_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes, doubl
         //pNodes[pNodesToRecoverIdx[3]].setData(i, currRecData[3]);
 
     }
-
+    auto innerTime2End = chrono::high_resolution_clock::now();
+    auto inner2Elapsed = chrono::duration_cast<chrono::microseconds>(innerTime2End - innerTime2start);
+    * innerTime2 = std::chrono::duration<double>(inner2Elapsed).count();
    // *innerTime2 = timer_split(&start_time2);
 
     auto  end_time =  chrono::high_resolution_clock::now();
