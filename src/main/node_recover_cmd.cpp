@@ -9,19 +9,21 @@
 #include <list>
 
 #ifdef _WIN32
-#include "./getopt.h"
+  #include "../sys/getopt.h"
 #else
-#include <getopt.h>
+  #include <getopt.h>
 #endif
 
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
+
 #ifdef _WIN32
-#include "sys/time.h"
+  #include "../sys/time.h"
 #else
-#include <sys/time.h>
+  #include <sys/time.h>
 #endif
+
 #include "Node.h"
 #include "FieldDefs.h"
 #include "FieldElement.h"
@@ -1321,7 +1323,6 @@ int main()
             if (elapsed_time[i] > max_elapsed_time)
                 max_elapsed_time = elapsed_time[i];
         }
-
         printf("Av. elapsed time: %f usec\n", (whole_elapsed_time * 1e6) / testsNum);
         printf("  min. elapsed time: %f usec\n", min_elapsed_time * 1e6);
         printf("  max. elapsed time: %f usec\n", max_elapsed_time * 1e6);

@@ -1,5 +1,5 @@
 #include "sys/times.h"
- 
+#ifdef _WIN32 
 int gettimeofday(struct timeval* t,void* timezone)
 {       struct _timeb timebuffer;
         _ftime( &timebuffer );
@@ -16,3 +16,4 @@ clock_t times (struct tms *__buffer) {
 	__buffer->tms_cutime = 0;
 	return __buffer->tms_utime;
 }
+#endif
