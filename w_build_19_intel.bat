@@ -1,4 +1,4 @@
-set BUILD_DIR=build_x64_VS2019
+set BUILD_DIR=build_x64_VS2019_intel
 rmdir /S /Q %BUILD_DIR%
 mkdir %BUILD_DIR%
 cd %BUILD_DIR%
