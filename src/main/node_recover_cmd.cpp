@@ -18,11 +18,14 @@
 #include <string.h>
 #include <stdlib.h>
 
-#ifdef _WIN32
-  #include "../sys/time.h"
-#else
-  #include <sys/time.h>
-#endif
+#include <chrono>
+//#ifdef _WIN32
+//  #include "../sys/time.h"
+//#else
+//  #include <sys/time.h>
+//#endif
+
+
 
 #include "Node.h"
 #include "FieldDefs.h"
@@ -36,23 +39,23 @@ using namespace std;
 //=======================================================================================================================================
 
 // Time handling procedures
-void timer_start(double* t)
-{
-    struct timeval  tv;
-
-    gettimeofday(&tv, NULL);
-    *t = (double)tv.tv_sec + (double)tv.tv_usec * 1e-6;
-}
-
-double timer_split(const double* t)
-{
-    struct timeval  tv;
-    double  cur_t;
-
-    gettimeofday(&tv, NULL);
-    cur_t = (double)tv.tv_sec + (double)tv.tv_usec * 1e-6;
-    return (cur_t - *t);
-}
+//void timer_start(double* t)
+//{
+//    struct timeval  tv;
+//
+//    gettimeofday(&tv, NULL);
+//    *t = (double)tv.tv_sec + (double)tv.tv_usec * 1e-6;
+//}
+//
+//double timer_split(const double* t)
+//{
+//    struct timeval  tv;
+//    double  cur_t;
+//
+//    gettimeofday(&tv, NULL);
+//    cur_t = (double)tv.tv_sec + (double)tv.tv_usec * 1e-6;
+//    return (cur_t - *t);
+//}
 
 void ext_vand4_inv(fe_type B[4][4], fe_type a, fe_type b, fe_type c, fe_type d)
 {
@@ -371,10 +374,10 @@ double ext_recover_4_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes, doubl
     //uint8_t* src, * dst;
     //gf_val_32_t coeff = 0;
 
-    double start_time = 0;
-    double start_time2 = 0;
-    timer_start(&start_time);
-    //auto start_time = chrono::high_resolution_clock::now();
+    //double start_time = 0;
+    //double start_time2 = 0;
+   // timer_start(&start_time);
+    auto start_time = chrono::high_resolution_clock::now();
 
     for (i = 0; i < 2400; ++i)
     {
@@ -409,9 +412,9 @@ double ext_recover_4_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes, doubl
     //        resVectors[j][i] = (*(pArray2Vector[0][i])) ^ (*(pArray2Vector[1][i])) ^ (*(pArray2Vector[2][i])) ^ (*(pArray2Vector[3][i])) ^ (*(pArray2Vector[4][i]));
     //    }*/
     //}
-     *inneTime1 = timer_split(&start_time);
+     //*inneTime1 = timer_split(&start_time);
      
-     timer_start(&start_time2);
+     //timer_start(&start_time2);
 
     for (i = 0; i < 1024; ++i)
     {
@@ -472,11 +475,12 @@ double ext_recover_4_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes, doubl
 
     }
 
-    *innerTime2 = timer_split(&start_time2);
+   // *innerTime2 = timer_split(&start_time2);
 
-    //auto end_time = chrono::high_resolution_clock::now();
-    //auto elapsed_time = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
-    double elapsed_time = timer_split(&start_time);
+    auto  end_time =  chrono::high_resolution_clock::now();
+    auto  elapsed = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
+    double elapsed_time = std::chrono::duration<double>(elapsed).count();
+    //double elapsed_time = timer_split(&start_time);
 
     return elapsed_time; //(double)elapsed_time.count();
 }
@@ -589,9 +593,9 @@ double recover_4_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
         }
     }
 
-    double start_time = 0;
-    timer_start(&start_time);
-    //auto start_time = chrono::high_resolution_clock::now();
+   // double start_time = 0;
+    //timer_start(&start_time);
+    auto start_time = chrono::high_resolution_clock::now();
 
     for (i = 0; i < 1024; ++i)
     {   
@@ -629,11 +633,10 @@ double recover_4_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
 
     }
 
-    //auto end_time = chrono::high_resolution_clock::now();
-    //auto elapsed_time = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
-    double elapsed_time = timer_split(&start_time);
-
-    return elapsed_time; //(double)elapsed_time.count();
+    auto  end_time = chrono::high_resolution_clock::now();
+    auto  elapsed = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
+    double elapsed_time = std::chrono::duration<double>(elapsed).count();
+    return elapsed_time;
 }
 
 // 3 nodes recovery procedure
@@ -717,9 +720,9 @@ double recover_3_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
         }
     }
 
-    double start_time = 0;
-    timer_start(&start_time);
-    //auto start_time = chrono::high_resolution_clock::now();
+    //double start_time = 0;
+    //timer_start(&start_time);
+    auto start_time = chrono::high_resolution_clock::now();
 
     for (i = 0; i < 1024; ++i)
     {
@@ -753,11 +756,11 @@ double recover_3_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
 
     }
 
-    //auto end_time = chrono::high_resolution_clock::now();
-    //auto elapsed_time = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
-    double elapsed_time = timer_split(&start_time);
+    auto  end_time = chrono::high_resolution_clock::now();
+    auto  elapsed = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
+    double elapsed_time = std::chrono::duration<double>(elapsed).count();
 
-    return elapsed_time; //(double)elapsed_time.count();
+    return elapsed_time;
 }
 
 // 2 nodes recovery procedure
@@ -834,9 +837,9 @@ double recover_2_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
         }
     }
 
-    double start_time = 0;
-    timer_start(&start_time);
-    //auto start_time = chrono::high_resolution_clock::now();
+    //double start_time = 0;
+    //timer_start(&start_time);
+    auto start_time = chrono::high_resolution_clock::now();
 
     for (i = 0; i < 1024; ++i)
     {
@@ -865,9 +868,9 @@ double recover_2_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
 
     }
 
-    //auto end_time = chrono::high_resolution_clock::now();
-    //auto elapsed_time = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
-    double elapsed_time = timer_split(&start_time);
+    auto  end_time = chrono::high_resolution_clock::now();
+    auto  elapsed = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
+    double elapsed_time = std::chrono::duration<double>(elapsed).count();
 
     return elapsed_time; //(double)elapsed_time.count();
 }
@@ -986,9 +989,9 @@ double recover_1_node(unsigned int* pNodesToRecoverIdx, Node* pNodes)
         sameACol[i][2] = FieldElement(lambdas_pow3[nodeToRecAIdx][i]);
     }
 
-    double start_time = 0;
-    timer_start(&start_time);
-    //auto start_time = chrono::high_resolution_clock::now();
+    //double start_time = 0;
+    //timer_start(&start_time);
+    auto start_time = chrono::high_resolution_clock::now();
 
     for (subBlockIdx = 0; subBlockIdx < 256; ++subBlockIdx)
     {
@@ -1051,9 +1054,9 @@ double recover_1_node(unsigned int* pNodesToRecoverIdx, Node* pNodes)
         pNodes[nodeToRecIdx].setData(posArray[subBlockIdx][3], recData[3]);
     }
 
-    //auto end_time = chrono::high_resolution_clock::now();
-    //auto elapsed_time = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
-    double elapsed_time = timer_split(&start_time);
+    auto  end_time = chrono::high_resolution_clock::now();
+    auto  elapsed = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
+    double elapsed_time = std::chrono::duration<double>(elapsed).count();
 
     return elapsed_time; //(double)elapsed_time.count();
 }

@@ -25,9 +25,6 @@ if (WIN32)
 	main/ConstructionDefs.h
 	field/FieldDefs.h
 	field/FieldElement.h
-	sys/time.h
-	sys/time.cpp
-	sys/times.h
   )
 else()
   add_executable(NodeRecoveryCmd 

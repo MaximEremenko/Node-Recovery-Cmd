@@ -14,7 +14,13 @@
 #pragma once
 
 #include <stdio.h>
+
+#ifdef _WIN32
+#include "../sys/getopt.h"
+#else
 #include <getopt.h>
+#endif
+
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
