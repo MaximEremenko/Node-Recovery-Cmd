@@ -9,7 +9,7 @@
 #include <list>
 
 #ifdef _WIN32
-  #include "../sys/getopt.h"
+  #include "sys/getopt.h"
 #else
   #include <getopt.h>
 #endif
@@ -1273,7 +1273,7 @@ int main()
 
     unsigned int nodesToRecoverNum = 1;
 
-    int testsNum = 100;
+    int testsNum = 1000;
     unsigned int pTestNodesToRecoverIdx[4] = { 1, 2, 3, 4 };
     unsigned int rndId = 0;
 

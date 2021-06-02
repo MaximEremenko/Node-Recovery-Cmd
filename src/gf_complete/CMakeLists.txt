@@ -1,15 +1,14 @@
 #set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -msse4 -DINTEL_SSE4 -maes -mpclmul -DINTEL_PCLMUL")
 
 if (MSVC)
-    # warning level 4 and all warnings as errors
-    #add_compile_options(/W4 /WX)
-	set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Ox /DINTEL_SSE4 /DINTEL_PCLMUL /QxHost")
-	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /O0 /DINTEL_SSE4 /DINTEL_PCLMUL /QxHost")
+    add_compile_options(/DINTEL_SSE4 /DINTEL_PCLMUL /QxHost)
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Ox /DINTEL_SSE4 /DINTEL_PCLMUL /QxHost")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /O0 /DINTEL_SSE4 /DINTEL_PCLMUL /QxHost")
 else()
     # lots of warnings and all warnings as errors
-	set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -maes -mpclmul -msse4 -DINTEL_SSE4 -DINTEL_PCLMUL")
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_RELEASE} -O0 -maes -mpclmul -msse4 -DINTEL_SSE4 -DINTEL_PCLMUL")
-    #add_compile_options(-msse4 -DINTEL_SSE4 -maes -mpclmul -DINTEL_PCLMUL)
+   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -maes -mpclmul -msse4 -DINTEL_SSE4 -DINTEL_PCLMUL")
+    #set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_RELEASE} -O0 -maes -mpclmul -msse4 -DINTEL_SSE4 -DINTEL_PCLMUL")
+    add_compile_options(-msse4 -DINTEL_SSE4 -maes -mpclmul -DINTEL_PCLMUL)
 endif()
 
 
