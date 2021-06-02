@@ -1273,7 +1273,8 @@ int main()
 
     unsigned int nodesToRecoverNum = 1;
 
-    int testsNum = 1000;
+    int testsNum = 10000;
+
     unsigned int pTestNodesToRecoverIdx[4] = { 1, 2, 3, 4 };
     unsigned int rndId = 0;
 
