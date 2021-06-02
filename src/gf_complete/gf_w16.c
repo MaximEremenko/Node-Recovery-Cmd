@@ -94,7 +94,7 @@ gf_val_32_t gf_w16_divide_from_inverse (gf_t *gf, gf_val_32_t a, gf_val_32_t b)
 
 static
 void
-gf_w16_multiply_region_from_single(gf_t *gf, void *src, void *dest, gf_val_32_t val, int bytes, int xor)
+gf_w16_multiply_region_from_single(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_32_t val, int bytes, int xor)
 {
   gf_region_data rd;
   uint16_t *s16;
@@ -127,7 +127,7 @@ gf_w16_multiply_region_from_single(gf_t *gf, void *src, void *dest, gf_val_32_t 
 
 static
 void
-gf_w16_clm_multiply_region_from_single_2(gf_t *gf, void *src, void *dest, gf_val_32_t val, int bytes, int xor)
+gf_w16_clm_multiply_region_from_single_2(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_32_t val, int bytes, int xor)
 {
   gf_region_data rd;
   uint16_t *s16;
@@ -191,7 +191,7 @@ gf_w16_clm_multiply_region_from_single_2(gf_t *gf, void *src, void *dest, gf_val
 
 static
 void
-gf_w16_clm_multiply_region_from_single_3(gf_t *gf, void *src, void *dest, gf_val_32_t val, int bytes, int xor)
+gf_w16_clm_multiply_region_from_single_3(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_32_t val, int bytes, int xor)
 {
   gf_region_data rd;
   uint16_t *s16;
@@ -260,7 +260,7 @@ gf_w16_clm_multiply_region_from_single_3(gf_t *gf, void *src, void *dest, gf_val
 
 static
 void
-gf_w16_clm_multiply_region_from_single_4(gf_t *gf, void *src, void *dest, gf_val_32_t val, int bytes, int xor)
+gf_w16_clm_multiply_region_from_single_4(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_32_t val, int bytes, int xor)
 {
   gf_region_data rd;
   uint16_t *s16;
@@ -375,7 +375,7 @@ gf_val_32_t gf_w16_euclid (gf_t *gf, gf_val_32_t b)
 }
 
 static
-gf_val_32_t gf_w16_extract_word(gf_t *gf, void *start, int bytes, int index)
+gf_val_32_t gf_w16_extract_word(gf_t *gf, uint8_t *start, int bytes, int index)
 {
   uint16_t *r16, rv;
 
@@ -385,7 +385,7 @@ gf_val_32_t gf_w16_extract_word(gf_t *gf, void *start, int bytes, int index)
 }
 
 static
-gf_val_32_t gf_w16_composite_extract_word(gf_t *gf, void *start, int bytes, int index)
+gf_val_32_t gf_w16_composite_extract_word(gf_t *gf, uint8_t *start, int bytes, int index)
 {
   int sub_size;
   gf_internal_t *h;
@@ -409,7 +409,7 @@ gf_val_32_t gf_w16_composite_extract_word(gf_t *gf, void *start, int bytes, int 
 }
 
 static
-gf_val_32_t gf_w16_split_extract_word(gf_t *gf, void *start, int bytes, int index)
+gf_val_32_t gf_w16_split_extract_word(gf_t *gf, uint8_t *start, int bytes, int index)
 {
   uint16_t *r16, rv;
   uint8_t *r8;
@@ -634,7 +634,7 @@ int gf_w16_cfm_init(gf_t *gf)
 
 static
 void
-gf_w16_log_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_t val, int bytes, int xor)
+gf_w16_log_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_32_t val, int bytes, int xor)
 {
   uint16_t *s16, *d16;
   int lv;
@@ -772,7 +772,7 @@ int gf_w16_log_init(gf_t *gf)
 
 static 
 void
-gf_w16_split_4_16_lazy_nosse_altmap_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_t val, int bytes, int xor)
+gf_w16_split_4_16_lazy_nosse_altmap_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_32_t val, int bytes, int xor)
 {
   uint64_t i, j, a, b, c, prod;
   uint8_t *s8, *d8, *top;
@@ -836,7 +836,7 @@ gf_w16_split_4_16_lazy_nosse_altmap_multiply_region(gf_t *gf, void *src, void *d
 
 static
   void
-gf_w16_split_4_16_lazy_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_t val, int bytes, int xor)
+gf_w16_split_4_16_lazy_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_32_t val, int bytes, int xor)
 {
   uint64_t i, j, a, c, prod;
   uint16_t *s16, *d16, *top;
@@ -878,7 +878,7 @@ gf_w16_split_4_16_lazy_multiply_region(gf_t *gf, void *src, void *dest, gf_val_3
 
 static
 void
-gf_w16_split_8_16_lazy_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_t val, int bytes, int xor)
+gf_w16_split_8_16_lazy_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_32_t val, int bytes, int xor)
 {
   uint64_t j, k, v, a, c, prod, *s64, *d64, *top64;
   gf_internal_t *h;
@@ -964,7 +964,7 @@ gf_w16_split_8_16_lazy_multiply_region(gf_t *gf, void *src, void *dest, gf_val_3
 }
 
 static void
-gf_w16_table_lazy_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_t val, int bytes, int xor)
+gf_w16_table_lazy_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_32_t val, int bytes, int xor)
 {
   uint64_t j, a, c, pp;
   gf_internal_t *h;
@@ -1006,7 +1006,7 @@ gf_w16_table_lazy_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_t v
 
 static
 void
-gf_w16_split_4_16_lazy_sse_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_t val, int bytes, int xor)
+gf_w16_split_4_16_lazy_sse_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_32_t val, int bytes, int xor)
 {
 #ifdef INTEL_SSSE3
   uint64_t i, j, *s64, *d64, *top64;;
@@ -1139,7 +1139,7 @@ gf_w16_split_4_16_lazy_sse_multiply_region(gf_t *gf, void *src, void *dest, gf_v
 
 static
 void
-gf_w16_split_4_16_lazy_sse_altmap_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_t val, int bytes, int xor)
+gf_w16_split_4_16_lazy_sse_altmap_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_32_t val, int bytes, int xor)
 {
 #ifdef INTEL_SSSE3
   uint64_t i, j, *s64, *d64, *top64;;
@@ -1369,7 +1369,7 @@ int gf_w16_table_init(gf_t *gf)
 
 static
 void
-gf_w16_log_zero_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_t val, int bytes, int xor)
+gf_w16_log_zero_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_32_t val, int bytes, int xor)
 {
   uint16_t lv;
   int i;
@@ -1500,7 +1500,7 @@ gf_w16_bytwo_b_multiply (gf_t *gf, gf_val_32_t a, gf_val_32_t b)
 
 static
 void 
-gf_w16_bytwo_p_nosse_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_t val, int bytes, int xor)
+gf_w16_bytwo_p_nosse_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_32_t val, int bytes, int xor)
 {
   uint64_t *s64, *d64, t1, t2, ta, prod, amask;
   gf_region_data rd;
@@ -1559,7 +1559,7 @@ gf_w16_bytwo_p_nosse_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_
 
 static
 void 
-gf_w16_bytwo_p_sse_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_t val, int bytes, int xor)
+gf_w16_bytwo_p_sse_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_32_t val, int bytes, int xor)
 {
 #ifdef INTEL_SSE2
   int i;
@@ -1678,7 +1678,7 @@ gf_w16_bytwo_b_sse_region_2_xor(gf_region_data *rd, struct gf_w16_bytwo_data *bt
 
 static
 void 
-gf_w16_bytwo_b_sse_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_t val, int bytes, int xor)
+gf_w16_bytwo_b_sse_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_32_t val, int bytes, int xor)
 {
 #ifdef INTEL_SSE2
   int itb;
@@ -1733,7 +1733,7 @@ gf_w16_bytwo_b_sse_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_t 
 
 static
 void 
-gf_w16_bytwo_b_nosse_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_t val, int bytes, int xor)
+gf_w16_bytwo_b_nosse_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_32_t val, int bytes, int xor)
 {
   int i;
   uint64_t *s64, *d64, t1, t2, ta, tb, prod;
@@ -2070,7 +2070,7 @@ gf_w16_composite_inverse(gf_t *gf, gf_val_32_t a)
 
 static
 void
-gf_w16_composite_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_t val, int bytes, int xor)
+gf_w16_composite_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_32_t val, int bytes, int xor)
 {
   unsigned long uls, uld;
   gf_internal_t *h = (gf_internal_t *) gf->scratch;
@@ -2154,7 +2154,7 @@ gf_w16_composite_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_t va
 
 static
 void
-gf_w16_composite_multiply_region_alt(gf_t *gf, void *src, void *dest, gf_val_32_t val, int bytes, int xor)
+gf_w16_composite_multiply_region_alt(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_32_t val, int bytes, int xor)
 {
   gf_internal_t *h = (gf_internal_t *) gf->scratch;
   gf_t *base_gf = h->base_gf;
@@ -2268,7 +2268,7 @@ gf_w16_group_4_4_multiply(gf_t *gf, gf_val_32_t a, gf_val_32_t b)
 }
 
 static
-void gf_w16_group_4_4_region_multiply(gf_t *gf, void *src, void *dest, gf_val_32_t val, int bytes, int xor)
+void gf_w16_group_4_4_region_multiply(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_32_t val, int bytes, int xor)
 {
   int i;
   uint16_t p, l, ind, r, a16, p16;

@@ -110,15 +110,15 @@ typedef union {
 } gf_func_a;
   
 typedef union {
-  void  (*w32) (GFP gf, void *src, void *dest, gf_val_32_t val,  int bytes, int add);
-  void  (*w64) (GFP gf, void *src, void *dest, gf_val_64_t val,  int bytes, int add);
-  void  (*w128)(GFP gf, void *src, void *dest, gf_val_128_t val, int bytes, int add);
+  void  (*w32) (GFP gf, uint8_t *src, uint8_t *dest, gf_val_32_t val,  int bytes, int add);
+  void  (*w64) (GFP gf, uint8_t *src, uint8_t *dest, gf_val_64_t val,  int bytes, int add);
+  void  (*w128)(GFP gf, uint8_t *src, uint8_t *dest, gf_val_128_t val, int bytes, int add);
 } gf_region;
 
 typedef union {
-  gf_val_32_t  (*w32) (GFP gf, void *start, int bytes, int index);
-  gf_val_64_t  (*w64) (GFP gf, void *start, int bytes, int index);
-  void         (*w128)(GFP gf, void *start, int bytes, int index, gf_val_128_t rv);
+  gf_val_32_t  (*w32) (GFP gf, uint8_t *start, int bytes, int index);
+  gf_val_64_t  (*w64) (GFP gf, uint8_t *start, int bytes, int index);
+  void         (*w128)(GFP gf, uint8_t *start, int bytes, int index, gf_val_128_t rv);
 } gf_extract;
 
 typedef struct gf {

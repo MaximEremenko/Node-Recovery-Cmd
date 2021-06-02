@@ -46,7 +46,7 @@ typedef struct gf_group_tables_s {
 
 static
 void
-gf_w128_multiply_region_from_single(gf_t *gf, void *src, void *dest, gf_val_128_t val, int bytes,
+gf_w128_multiply_region_from_single(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_128_t val, int bytes,
 int xor)
 {
     int i;
@@ -83,7 +83,7 @@ int xor)
 
 static
 void
-gf_w128_clm_multiply_region_from_single(gf_t *gf, void *src, void *dest, gf_val_128_t val, int bytes,
+gf_w128_clm_multiply_region_from_single(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_128_t val, int bytes,
 int xor)
 {
     int i;
@@ -517,7 +517,7 @@ gf_w128_bytwo_b_multiply(gf_t *gf, gf_val_128_t a128, gf_val_128_t b128, gf_val_
 
 static
 void
-gf_w128_split_4_128_multiply_region(gf_t *gf, void *src, void *dest, gf_val_128_t val, int bytes, int xor)
+gf_w128_split_4_128_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_128_t val, int bytes, int xor)
 {
   int i, j, k;
   uint64_t pp;
@@ -601,7 +601,7 @@ gf_w128_split_4_128_multiply_region(gf_t *gf, void *src, void *dest, gf_val_128_
 
 static
 void
-gf_w128_split_4_128_sse_multiply_region(gf_t *gf, void *src, void *dest, gf_val_128_t val, int bytes, int xor)
+gf_w128_split_4_128_sse_multiply_region(gf_t *gf, uint8_t *src, uint8_t*dest, gf_val_128_t val, int bytes, int xor)
 {
 #ifdef INTEL_SSSE3
   gf_internal_t *h;
@@ -700,7 +700,7 @@ gf_w128_split_4_128_sse_multiply_region(gf_t *gf, void *src, void *dest, gf_val_
 
 static
 void
-gf_w128_split_4_128_sse_altmap_multiply_region(gf_t *gf, void *src, void *dest, gf_val_128_t val, int bytes, int xor)
+gf_w128_split_4_128_sse_altmap_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_128_t val, int bytes, int xor)
 {
 #ifdef INTEL_SSSE3
   gf_internal_t *h;
@@ -810,7 +810,7 @@ gf_w128_split_4_128_sse_altmap_multiply_region(gf_t *gf, void *src, void *dest, 
 
 static
 void
-gf_w128_split_8_128_multiply_region(gf_t *gf, void *src, void *dest, gf_val_128_t val, int bytes, int xor)
+gf_w128_split_8_128_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_128_t val, int bytes, int xor)
 {
   int i, j, k;
   uint64_t pp;
@@ -884,7 +884,7 @@ gf_w128_split_8_128_multiply_region(gf_t *gf, void *src, void *dest, gf_val_128_
 }
 
 void
-gf_w128_bytwo_b_multiply_region(gf_t *gf, void *src, void *dest, gf_val_128_t val, int bytes, int xor)
+gf_w128_bytwo_b_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_128_t val, int bytes, int xor)
 {
   uint64_t bmask, pp, vmask;
   gf_internal_t *h;
@@ -1179,7 +1179,7 @@ gf_w128_group_sse_multiply(GFP gf, gf_val_128_t a128, gf_val_128_t b128, gf_val_
 
 static
 void
-gf_w128_group_multiply_region(gf_t *gf, void *src, void *dest, gf_val_128_t val, int bytes, int xor)
+gf_w128_group_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_128_t val, int bytes, int xor)
 {
   int i;
   int i_r, i_m, t_m;
@@ -1275,7 +1275,7 @@ gf_w128_group_multiply_region(gf_t *gf, void *src, void *dest, gf_val_128_t val,
 
 static
 void
-gf_w128_group_sse_multiply_region(gf_t *gf, void *src, void *dest, gf_val_128_t val, int bytes, int xor)
+gf_w128_group_sse_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_128_t val, int bytes, int xor)
 {
 #ifdef INTEL_SSE4
   int i;
@@ -1599,7 +1599,7 @@ gf_w128_composite_multiply(gf_t *gf, gf_val_128_t a, gf_val_128_t b, gf_val_128_
 
 static
   void
-gf_w128_composite_multiply_region(gf_t *gf, void *src, void *dest, gf_val_128_t val, int bytes, int xor)
+gf_w128_composite_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_128_t val, int bytes, int xor)
 {
   unsigned long uls, uld;
   gf_internal_t *h = (gf_internal_t *) gf->scratch;
@@ -1650,7 +1650,7 @@ gf_w128_composite_multiply_region(gf_t *gf, void *src, void *dest, gf_val_128_t 
 
 static
 void
-gf_w128_composite_multiply_region_alt(gf_t *gf, char*src, char*dest, gf_val_128_t val, int bytes, int
+gf_w128_composite_multiply_region_alt(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_128_t val, int bytes, int
     xor)
 {
   gf_internal_t *h = (gf_internal_t *) gf->scratch;  gf_t *base_gf = h->base_gf;
@@ -1903,7 +1903,7 @@ int gf_w128_group_init(gf_t *gf)
   return 1;
 }
 
-void gf_w128_extract_word(gf_t *gf, void *start, int bytes, int index, gf_val_128_t rv)
+void gf_w128_extract_word(gf_t *gf, uint8_t *start, int bytes, int index, gf_val_128_t rv)
 {
   gf_val_128_t s;
 
@@ -1912,7 +1912,7 @@ void gf_w128_extract_word(gf_t *gf, void *start, int bytes, int index, gf_val_12
   memcpy(rv, s, 16);
 }
 
-static void gf_w128_split_extract_word(gf_t *gf, void *start, int bytes, int index, gf_val_128_t rv)
+static void gf_w128_split_extract_word(gf_t *gf, uint8_t *start, int bytes, int index, gf_val_128_t rv)
 {
   int i, blocks;
   uint64_t *r64, tmp;
@@ -1953,7 +1953,7 @@ static void gf_w128_split_extract_word(gf_t *gf, void *start, int bytes, int ind
 }
 
   static
-void gf_w128_composite_extract_word(gf_t *gf, void *start, int bytes, int index, gf_val_128_t rv)
+void gf_w128_composite_extract_word(gf_t *gf, uint8_t *start, int bytes, int index, gf_val_128_t rv)
 {
   int sub_size;
   gf_internal_t *h;

@@ -99,7 +99,7 @@ uint32_t gf_w32_divide_from_inverse (gf_t *gf, uint32_t a, uint32_t b)
 
 static
 void
-gf_w32_multiply_region_from_single(gf_t *gf, void *src, void *dest, uint32_t val, int bytes, int 
+gf_w32_multiply_region_from_single(gf_t *gf, uint8_t *src, uint8_t *dest, uint32_t val, int bytes, int 
 xor)
 {
   int i;
@@ -122,7 +122,7 @@ xor)
 
 static 
 void
-gf_w32_clm_multiply_region_from_single_2(gf_t *gf, void *src, void *dest, uint32_t val, int bytes, int xor)
+gf_w32_clm_multiply_region_from_single_2(gf_t *gf, uint8_t *src, uint8_t *dest, uint32_t val, int bytes, int xor)
 {
 
 #ifdef INTEL_SSE4_PCLMUL
@@ -172,7 +172,7 @@ gf_w32_clm_multiply_region_from_single_2(gf_t *gf, void *src, void *dest, uint32
 
 static 
 void
-gf_w32_clm_multiply_region_from_single_3(gf_t *gf, void *src, void *dest, uint32_t val, int bytes, int xor)
+gf_w32_clm_multiply_region_from_single_3(gf_t *gf, uint8_t *src, uint8_t *dest, uint32_t val, int bytes, int xor)
 {
 
 #ifdef INTEL_SSE4_PCLMUL
@@ -227,7 +227,7 @@ gf_w32_clm_multiply_region_from_single_3(gf_t *gf, void *src, void *dest, uint32
 
 static 
 void
-gf_w32_clm_multiply_region_from_single_4(gf_t *gf, void *src, void *dest, uint32_t val, int bytes, int xor)
+gf_w32_clm_multiply_region_from_single_4(gf_t *gf, uint8_t *src, uint8_t *dest, uint32_t val, int bytes, int xor)
 {
 #ifdef INTEL_SSE4_PCLMUL
   int i;
@@ -327,7 +327,7 @@ uint32_t gf_w32_euclid (gf_t *gf, uint32_t b)
 }
 
 static
-gf_val_32_t gf_w32_extract_word(gf_t *gf, void *start, int bytes, int index)
+gf_val_32_t gf_w32_extract_word(gf_t *gf, uint8_t *start, int bytes, int index)
 {
   uint32_t *r32, rv;
 
@@ -337,7 +337,7 @@ gf_val_32_t gf_w32_extract_word(gf_t *gf, void *start, int bytes, int index)
 }
 
 static
-gf_val_32_t gf_w32_composite_extract_word(gf_t *gf, void *start, int bytes, int index)
+gf_val_32_t gf_w32_composite_extract_word(gf_t *gf, uint8_t *start, int bytes, int index)
 {
   int sub_size;
   gf_internal_t *h;
@@ -361,7 +361,7 @@ gf_val_32_t gf_w32_composite_extract_word(gf_t *gf, void *start, int bytes, int 
 }
 
 static
-gf_val_32_t gf_w32_split_extract_word(gf_t *gf, void *start, int bytes, int index)
+gf_val_32_t gf_w32_split_extract_word(gf_t *gf, uint8_t *start, int bytes, int index)
 {
   int i;
   uint32_t *r32, rv;
@@ -614,7 +614,7 @@ gf_w32_group_set_shift_tables(uint32_t *shift, uint32_t val, gf_internal_t *h)
 }
 
   static
-void gf_w32_group_s_equals_r_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_t val, int bytes, int xor)
+void gf_w32_group_s_equals_r_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_32_t val, int bytes, int xor)
 {
   int i;
   int leftover, rs;
@@ -669,7 +669,7 @@ void gf_w32_group_s_equals_r_multiply_region(gf_t *gf, void *src, void *dest, gf
 }
 
   static
-void gf_w32_group_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_t val, int bytes, int xor)
+void gf_w32_group_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_32_t val, int bytes, int xor)
 {
   uint32_t *s32, *d32, *top;
   int i;
@@ -929,7 +929,7 @@ gf_w32_bytwo_p_multiply (gf_t *gf, gf_val_32_t a, gf_val_32_t b)
 
 static
 void
-gf_w32_bytwo_p_nosse_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_t val, int bytes, int xor)
+gf_w32_bytwo_p_nosse_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_32_t val, int bytes, int xor)
 {
   uint64_t *s64, *d64, t1, t2, ta, prod, amask;
   gf_region_data rd;
@@ -988,7 +988,7 @@ gf_w32_bytwo_p_nosse_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_
 
 static
 void
-gf_w32_bytwo_p_sse_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_t val, int bytes, int xor)
+gf_w32_bytwo_p_sse_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_32_t val, int bytes, int xor)
 {
 #ifdef INTEL_SSE2
   int i;
@@ -1044,7 +1044,7 @@ gf_w32_bytwo_p_sse_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_t 
 
 static
 void
-gf_w32_bytwo_b_nosse_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_t val, int bytes, int xor)
+gf_w32_bytwo_b_nosse_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_32_t val, int bytes, int xor)
 {
   int i;
   uint64_t *s64, *d64, t1, t2, ta, tb, prod;
@@ -1238,7 +1238,7 @@ gf_w32_bytwo_b_sse_region_2_xor(gf_region_data *rd, struct gf_w32_bytwo_data *bt
 
 static
 void 
-gf_w32_bytwo_b_sse_multiply_region(gf_t *gf, void *src, void *dest, gf_val_32_t val, int bytes, int xor)
+gf_w32_bytwo_b_sse_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_32_t val, int bytes, int xor)
 {
 #ifdef INTEL_SSE2
   uint32_t itb;
@@ -1374,7 +1374,7 @@ gf_w32_split_8_8_multiply (gf_t *gf, uint32_t a32, uint32_t b32)
 static
 inline
 void
-gf_w32_split_8_32_lazy_multiply_region(gf_t *gf, void *src, void *dest, uint32_t val, int bytes, int xor)
+gf_w32_split_8_32_lazy_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, uint32_t val, int bytes, int xor)
 {
   gf_internal_t *h;
   uint32_t *s32, *d32, *top, p, a, v;
@@ -1442,7 +1442,7 @@ gf_w32_split_8_32_lazy_multiply_region(gf_t *gf, void *src, void *dest, uint32_t
 static
 inline
 void
-gf_w32_split_16_32_lazy_multiply_region(gf_t *gf, void *src, void *dest, uint32_t val, int bytes, int xor)
+gf_w32_split_16_32_lazy_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, uint32_t val, int bytes, int xor)
 {
   gf_internal_t *h;
   uint32_t *s32, *d32, *top, p, a, v;
@@ -1502,7 +1502,7 @@ gf_w32_split_16_32_lazy_multiply_region(gf_t *gf, void *src, void *dest, uint32_
 
 static
 void
-gf_w32_split_2_32_lazy_multiply_region(gf_t *gf, void *src, void *dest, uint32_t val, int bytes, int xor)
+gf_w32_split_2_32_lazy_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, uint32_t val, int bytes, int xor)
 {
   gf_internal_t *h;
   struct gf_split_2_32_lazy_data *ld;
@@ -1558,7 +1558,7 @@ gf_w32_split_2_32_lazy_multiply_region(gf_t *gf, void *src, void *dest, uint32_t
 
 static
 void
-gf_w32_split_2_32_lazy_sse_multiply_region(gf_t *gf, void *src, void *dest, uint32_t val, int bytes, int xor)
+gf_w32_split_2_32_lazy_sse_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, uint32_t val, int bytes, int xor)
 {
 #ifdef INTEL_SSSE3
   gf_internal_t *h;
@@ -1640,7 +1640,7 @@ gf_w32_split_2_32_lazy_sse_multiply_region(gf_t *gf, void *src, void *dest, uint
 
 static
 void
-gf_w32_split_4_32_lazy_multiply_region(gf_t *gf, void *src, void *dest, uint32_t val, int bytes, int xor)
+gf_w32_split_4_32_lazy_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, uint32_t val, int bytes, int xor)
 {
   gf_internal_t *h;
   struct gf_split_4_32_lazy_data *ld;
@@ -1695,7 +1695,7 @@ gf_w32_split_4_32_lazy_multiply_region(gf_t *gf, void *src, void *dest, uint32_t
 
 static
 void
-gf_w32_split_4_32_lazy_sse_altmap_multiply_region(gf_t *gf, void *src, void *dest, uint32_t val, int bytes, int xor)
+gf_w32_split_4_32_lazy_sse_altmap_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, uint32_t val, int bytes, int xor)
 {
 #ifdef INTEL_SSSE3
   gf_internal_t *h;
@@ -1887,7 +1887,7 @@ gf_w32_split_4_32_lazy_sse_altmap_multiply_region(gf_t *gf, void *src, void *des
 
 static
 void
-gf_w32_split_4_32_lazy_sse_multiply_region(gf_t *gf, void *src, void *dest, uint32_t val, int bytes, int xor)
+gf_w32_split_4_32_lazy_sse_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, uint32_t val, int bytes, int xor)
 {
 #ifdef INTEL_SSSE3
   gf_internal_t *h;
@@ -2465,7 +2465,7 @@ gf_w32_composite_inverse(gf_t *gf, uint32_t a)
 
 static
 void
-gf_w32_composite_multiply_region(gf_t *gf, void *src, void *dest, uint32_t val, int bytes, int xor)
+gf_w32_composite_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, uint32_t val, int bytes, int xor)
 {
   gf_internal_t *h = (gf_internal_t *) gf->scratch;
   gf_t *base_gf = h->base_gf;
@@ -2552,7 +2552,7 @@ gf_w32_composite_multiply_region(gf_t *gf, void *src, void *dest, uint32_t val, 
 
 static
 void
-gf_w32_composite_multiply_region_alt(gf_t *gf, void *src, void *dest, uint32_t val, int bytes, int xor)
+gf_w32_composite_multiply_region_alt(gf_t *gf, uint8_t *src, uint8_t *dest, uint32_t val, int bytes, int xor)
 {
   gf_internal_t *h = (gf_internal_t *) gf->scratch;
   gf_t *base_gf = h->base_gf;

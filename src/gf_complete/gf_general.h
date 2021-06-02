@@ -36,8 +36,8 @@ int gf_general_is_zero(gf_general_t *v, int w);
 int gf_general_is_one(gf_general_t *v, int w);
 int gf_general_are_equal(gf_general_t *v1, gf_general_t *v2, int w);
 
-void gf_general_val_to_s(gf_general_t *v, int w, char *s, int hex);
-int  gf_general_s_to_val(gf_general_t *v, int w, char *s, int hex);
+void gf_general_val_to_s(gf_general_t *v, int w, uint8_t*s, int hex);
+int  gf_general_s_to_val(gf_general_t *v, int w, uint8_t*s, int hex);
 
 void gf_general_set_random(gf_general_t *v, int w, int zero_ok);
 
@@ -58,4 +58,4 @@ void gf_general_do_region_check(gf_t *gf, gf_general_t *a,
 /* Which is M, D or I for multiply, divide or inverse. */
 
 void gf_general_set_up_single_timing_test(int w, void *ra, void *rb, int size);
-int  gf_general_do_single_timing_test(gf_t *gf, void *ra, void *rb, int size, char which);
+int  gf_general_do_single_timing_test(gf_t *gf, void *ra, void *rb, int size, uint8_t which);

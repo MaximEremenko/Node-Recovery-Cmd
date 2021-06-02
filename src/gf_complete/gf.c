@@ -517,7 +517,7 @@ int gf_free(gf_t *gf, int recursive)
   return 0; /* Making compiler happy */
 }
 
-void gf_alignment_error(char *s, int a)
+void gf_alignment_error(char*s, int a)
 {
   fprintf(stderr, "Alignment error in %s:\n", s);
   fprintf(stderr, "   The source and destination buffers must be aligned to each other,\n");
@@ -599,10 +599,10 @@ void gf_two_byte_region_table_multiply(gf_region_data *rd, uint16_t *base)
   int j, xor;
   uint64_t *s64, *d64, *top;
 
-  s64 = rd->s_start;
-  d64 = rd->d_start;
-  top = rd->d_top;
-  xor = rd->xor;
+  s64 = (uint64_t *)rd->s_start;
+  d64 = (uint64_t*)rd->d_start;
+  top = (uint64_t*)rd->d_top;
+  xor = (uint64_t*)rd->xor;
   
   if (xor) {
     while (d64 != top) {
@@ -642,7 +642,7 @@ void gf_two_byte_region_table_multiply(gf_region_data *rd, uint16_t *base)
   }
 }
 
-static void gf_slow_multiply_region(gf_region_data *rd, char *src, char*dest, char*s_top)
+static void gf_slow_multiply_region(gf_region_data *rd, uint8_t*src, uint8_t*dest, uint8_t*s_top)
 {
   uint8_t *s8, *d8;
   uint16_t *s16, *d16;
@@ -768,8 +768,8 @@ static void gf_slow_multiply_region(gf_region_data *rd, char *src, char*dest, ch
 
 void gf_set_region_data(gf_region_data *rd,
   gf_t *gf,
-  char *src,
-  char *dest,
+  uint8_t*src,
+  uint8_t*dest,
   int bytes,
   uint64_t val,
   int xor,
@@ -861,7 +861,7 @@ void gf_do_final_region_alignment(gf_region_data *rd)
   gf_slow_multiply_region(rd, rd->s_top, rd->d_top, rd->src+rd->bytes);
 }
 
-void gf_multby_zero(char *dest, int bytes, int xor) 
+void gf_multby_zero(uint8_t *dest, int bytes, int xor) 
 {
   if (xor) return;
   bzero(dest, bytes);
@@ -891,9 +891,9 @@ void gf_multby_zero(char *dest, int bytes, int xor)
    testing, but this seems like it could be a black hole.
  */
 
-static void gf_unaligned_xor(void *src, void *dest, int bytes);
+static void gf_unaligned_xor(uint8_t *src, uint8_t *dest, int bytes);
 
-void gf_multby_one(void *src, void *dest, int bytes, int xor) 
+void gf_multby_one(uint8_t *src, uint8_t *dest, int bytes, int xor) 
 {
 #ifdef   INTEL_SSE2
   __m128i ms, md;
@@ -992,7 +992,7 @@ void gf_multby_one(void *src, void *dest, int bytes, int xor)
 
 #define UNALIGNED_BUFSIZE (8)
 
-static void gf_unaligned_xor(char*src, char*dest, int bytes)
+static void gf_unaligned_xor(uint8_t*src, uint8_t*dest, int bytes)
 {
   uint64_t scopy[UNALIGNED_BUFSIZE], *d64;
   int i;

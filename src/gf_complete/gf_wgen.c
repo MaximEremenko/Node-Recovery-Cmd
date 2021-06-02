@@ -114,7 +114,7 @@ gf_val_32_t gf_wgen_euclid (gf_t *gf, gf_val_32_t b)
   return y_i;
 }
 
-gf_val_32_t gf_wgen_extract_word(gf_t *gf, void *start, int bytes, int index)
+gf_val_32_t gf_wgen_extract_word(gf_t *gf, uint8_t *start, int bytes, int index)
 {
   uint8_t *ptr;
   uint32_t rv;
@@ -898,7 +898,7 @@ int gf_wgen_scratch_size(int w, int mult_type, int region_type, int divide_type,
 }
 
 void
-gf_wgen_cauchy_region(gf_t *gf, char*src, char*dest, gf_val_32_t val, int bytes, int xor)
+gf_wgen_cauchy_region(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_32_t val, int bytes, int xor)
 {
   gf_internal_t *h;
   gf_region_data rd;

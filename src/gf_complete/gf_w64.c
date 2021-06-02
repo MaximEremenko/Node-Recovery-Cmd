@@ -63,7 +63,7 @@ gf_val_64_t gf_w64_divide_from_inverse (gf_t *gf, gf_val_64_t a, gf_val_64_t b)
 
 static
 void
-gf_w64_multiply_region_from_single(gf_t *gf, void *src, void *dest, gf_val_64_t val, int bytes, int
+gf_w64_multiply_region_from_single(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_64_t val, int bytes, int
 xor)
 {
   int i;
@@ -89,7 +89,7 @@ xor)
 
 static
 void
-gf_w64_clm_multiply_region_from_single_2(gf_t *gf, void *src, void *dest, gf_val_64_t val, int bytes, int
+gf_w64_clm_multiply_region_from_single_2(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_64_t val, int bytes, int
 xor)
 {
   int i, size;
@@ -180,7 +180,7 @@ xor)
 
 static
 void
-gf_w64_clm_multiply_region_from_single_4(gf_t *gf, void *src, void *dest, gf_val_64_t val, int bytes, int
+gf_w64_clm_multiply_region_from_single_4(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_64_t val, int bytes, int
 xor)
 {
   int i, size;
@@ -464,7 +464,7 @@ gf_w64_clm_multiply_4 (gf_t *gf, gf_val_64_t a64, gf_val_64_t b64)
 
 
   void
-gf_w64_clm_multiply_region(gf_t *gf, void *src, void *dest, uint64_t val, int bytes, int xor)
+gf_w64_clm_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, uint64_t val, int bytes, int xor)
 {
 #ifdef INTEL_SSE4_PCLMUL
   gf_internal_t *h;
@@ -552,7 +552,7 @@ gf_w64_clm_multiply_region(gf_t *gf, void *src, void *dest, uint64_t val, int by
 }
 
 void
-gf_w64_split_4_64_lazy_multiply_region(gf_t *gf, void *src, void *dest, uint64_t val, int bytes, int xor)
+gf_w64_split_4_64_lazy_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, uint64_t val, int bytes, int xor)
 {
   gf_internal_t *h;
   struct gf_split_4_64_lazy_data *ld;
@@ -631,7 +631,7 @@ gf_w64_split_8_8_multiply (gf_t *gf, uint64_t a64, uint64_t b64)
 }
 
 void
-gf_w64_split_8_64_lazy_multiply_region(gf_t *gf, void *src, void *dest, uint64_t val, int bytes, int xor)
+gf_w64_split_8_64_lazy_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, uint64_t val, int bytes, int xor)
 {
   gf_internal_t *h;
   struct gf_split_8_64_lazy_data *ld;
@@ -685,7 +685,7 @@ gf_w64_split_8_64_lazy_multiply_region(gf_t *gf, void *src, void *dest, uint64_t
 }
 
 void
-gf_w64_split_16_64_lazy_multiply_region(gf_t *gf, void *src, void *dest, uint64_t val, int bytes, int xor)
+gf_w64_split_16_64_lazy_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, uint64_t val, int bytes, int xor)
 {
   gf_internal_t *h;
   struct gf_split_16_64_lazy_data *ld;
@@ -851,7 +851,7 @@ gf_w64_group_multiply(gf_t *gf, gf_val_64_t a, gf_val_64_t b)
 }
 
 static
-void gf_w64_group_multiply_region(gf_t *gf, void *src, void *dest, gf_val_64_t val, int bytes, int xor)
+void gf_w64_group_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_64_t val, int bytes, int xor)
 {
   int i, fzb;
   uint64_t a64, smask, rmask, top, bot, tp, one;
@@ -972,7 +972,7 @@ gf_w64_group_s_equals_r_multiply(gf_t *gf, gf_val_64_t a, gf_val_64_t b)
 }
 
 static
-void gf_w64_group_s_equals_r_multiply_region(gf_t *gf, void *src, void *dest, gf_val_64_t val, int bytes, int xor)
+void gf_w64_group_s_equals_r_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_64_t val, int bytes, int xor)
 {
   int i;
   int leftover, rs;
@@ -1070,7 +1070,7 @@ int gf_w64_group_init(gf_t *gf)
 }
 
 static
-gf_val_64_t gf_w64_extract_word(gf_t *gf, void *start, int bytes, int index)
+gf_val_64_t gf_w64_extract_word(gf_t *gf, uint8_t *start, int bytes, int index)
 {
   uint64_t *r64, rv;
 
@@ -1080,7 +1080,7 @@ gf_val_64_t gf_w64_extract_word(gf_t *gf, void *start, int bytes, int index)
 }
 
 static
-gf_val_64_t gf_w64_composite_extract_word(gf_t *gf, void *start, int bytes, int index)
+gf_val_64_t gf_w64_composite_extract_word(gf_t *gf, uint8_t *start, int bytes, int index)
 {
   int sub_size;
   gf_internal_t *h;
@@ -1104,7 +1104,7 @@ gf_val_64_t gf_w64_composite_extract_word(gf_t *gf, void *start, int bytes, int 
 }
 
 static
-gf_val_64_t gf_w64_split_extract_word(gf_t *gf, void *start, int bytes, int index)
+gf_val_64_t gf_w64_split_extract_word(gf_t *gf, uint8_t *start, int bytes, int index)
 {
   int i;
   uint64_t *r64, rv;
@@ -1187,7 +1187,7 @@ gf_w64_bytwo_p_multiply (gf_t *gf, gf_val_64_t a, gf_val_64_t b)
 
 static
 void
-gf_w64_bytwo_p_nosse_multiply_region(gf_t *gf, void *src, void *dest, gf_val_64_t val, int bytes, int xor)
+gf_w64_bytwo_p_nosse_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_64_t val, int bytes, int xor)
 {
   uint64_t *s64, *d64, t1, t2, ta, prod, amask, pmask, pp;
   gf_region_data rd;
@@ -1241,7 +1241,7 @@ gf_w64_bytwo_p_nosse_multiply_region(gf_t *gf, void *src, void *dest, gf_val_64_
 
 static
 void
-gf_w64_bytwo_b_nosse_multiply_region(gf_t *gf, void *src, void *dest, gf_val_64_t val, int bytes, int xor)
+gf_w64_bytwo_b_nosse_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_64_t val, int bytes, int xor)
 {
   uint64_t *s64, *d64, t1, t2, ta, tb, prod, amask, bmask, pp;
   gf_region_data rd;
@@ -1310,7 +1310,7 @@ gf_w64_bytwo_b_nosse_multiply_region(gf_t *gf, void *src, void *dest, gf_val_64_
       v = _mm_srli_epi64(v, 1); }
 
 
-void gf_w64_bytwo_p_sse_multiply_region(gf_t *gf, void *src, void *dest, gf_val_64_t val, int bytes, int xor)
+void gf_w64_bytwo_p_sse_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_64_t val, int bytes, int xor)
 {
 #ifdef INTEL_SSE2
   int i;
@@ -1442,7 +1442,7 @@ gf_w64_bytwo_b_sse_region_2_noxor(gf_region_data *rd)
 
 static
 void
-gf_w64_bytwo_b_sse_multiply_region(gf_t *gf, void *src, void *dest, gf_val_64_t val, int bytes, int xor)
+gf_w64_bytwo_b_sse_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_64_t val, int bytes, int xor)
 {
 #ifdef INTEL_SSE2
   uint64_t itb, amask, one64;
@@ -1618,7 +1618,7 @@ gf_w64_composite_inverse(gf_t *gf, gf_val_64_t a)
 
 static
 void
-gf_w64_composite_multiply_region(gf_t *gf, void *src, void *dest, gf_val_64_t val, int bytes, int xor)
+gf_w64_composite_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_64_t val, int bytes, int xor)
 {
   unsigned long uls, uld;
   gf_internal_t *h = (gf_internal_t *) gf->scratch;
@@ -1667,7 +1667,7 @@ gf_w64_composite_multiply_region(gf_t *gf, void *src, void *dest, gf_val_64_t va
 
 static
 void
-gf_w64_composite_multiply_region_alt(gf_t *gf, void *src, void *dest, gf_val_64_t val, int bytes, int xor)
+gf_w64_composite_multiply_region_alt(gf_t *gf, uint8_t *src, uint8_t *dest, gf_val_64_t val, int bytes, int xor)
 {
   gf_internal_t *h = (gf_internal_t *) gf->scratch;
   gf_t *base_gf = h->base_gf;
@@ -1723,7 +1723,7 @@ int gf_w64_composite_init(gf_t *gf)
 
 static
   void
-gf_w64_split_4_64_lazy_sse_altmap_multiply_region(gf_t *gf, void *src, void *dest, uint64_t val, int bytes, int xor)
+gf_w64_split_4_64_lazy_sse_altmap_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, uint64_t val, int bytes, int xor)
 {
 #ifdef INTEL_SSSE3
   gf_internal_t *h;
@@ -1807,7 +1807,7 @@ gf_w64_split_4_64_lazy_sse_altmap_multiply_region(gf_t *gf, void *src, void *des
 
 static
   void
-gf_w64_split_4_64_lazy_sse_multiply_region(gf_t *gf, void *src, void *dest, uint64_t val, int bytes, int xor)
+gf_w64_split_4_64_lazy_sse_multiply_region(gf_t *gf, uint8_t *src, uint8_t *dest, uint64_t val, int bytes, int xor)
 {
 #ifdef INTEL_SSE4
   gf_internal_t *h;
