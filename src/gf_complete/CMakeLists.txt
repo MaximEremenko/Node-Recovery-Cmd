@@ -1,4 +1,15 @@
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
+#set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -msse4 -DINTEL_SSE4 -maes -mpclmul -DINTEL_PCLMUL")
+
+if (MSVC)
+    # warning level 4 and all warnings as errors
+    #add_compile_options(/W4 /WX)
+	set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2 /msse4 /DINTEL_SSE4 /maes /mpclmul /DINTEL_PCLMUL")
+else()
+    # lots of warnings and all warnings as errors
+	set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -msse4 -DINTEL_SSE4 -maes -mpclmul -DINTEL_PCLMUL")
+
+    #add_compile_options(-msse4 -DINTEL_SSE4 -maes -mpclmul -DINTEL_PCLMUL)
+endif()
 
 
 include_directories(
