@@ -1279,7 +1279,7 @@ int main()
     unsigned int rndId = 0;
 
     printf("\n==Reconstruction speed test:\n");
-    for (nodesToRecoverNum = 4; nodesToRecoverNum < 5; ++nodesToRecoverNum)
+    for (nodesToRecoverNum = 4; nodesToRecoverNum < 6; ++nodesToRecoverNum)
     {
         printf("---- %d nodes reconstruction:\n", nodesToRecoverNum);
         for (int tests = 0; tests < testsNum; ++tests)
@@ -1313,6 +1313,9 @@ int main()
                 break;
             case 4:
                 elapsed_time[tests] = ext_recover_4_nodes(pTestNodesToRecoverIdx, pNodes, &(inner_time1[tests]), &(inner_time2[tests]));
+                break;
+            case 5:
+                elapsed_time[tests] = recover_4_nodes(pTestNodesToRecoverIdx, pNodes);
                 break;
             default:
                 printf("Invalid number of nodes to recover!");
