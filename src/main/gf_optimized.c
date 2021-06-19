@@ -18,7 +18,7 @@ struct gf_w16_logtable_data {
 
 inline
 gf_val_32_t
-gf_w16_log_multiply(gf_t* gf, gf_val_32_t a, gf_val_32_t b)
+GF_w16_log_multiply(gf_t* gf, gf_val_32_t a, gf_val_32_t b)
 {
 	struct gf_w16_logtable_data* ltd;
 
@@ -47,7 +47,7 @@ void GF_multiply_region_w32(gf_t* gf, uint8_t* src, uint8_t* dest, gf_val_32_t v
 	for (j = 0; j < 16; j++) {
 		for (i = 0; i < 4; i++) {
 			c = (j << (i * 4));
-			prod = gf->multiply.w32(gf, c, val);
+			prod = GF_w16_log_multiply(gf, c, val);
 			low[i][j] = (prod & 0xff);
 			high[i][j] = (prod >> 8);
 		}
