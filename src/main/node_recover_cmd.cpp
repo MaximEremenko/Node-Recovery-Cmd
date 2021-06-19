@@ -266,6 +266,101 @@ uint8_t* dataSrc[2400];
 uint8_t* resDst[2400];
 gf_val_32_t currCoeff[2400];
 
+
+double ext_recover_4_nodes_core(int lambdasIdx[5], fe_type* pCurrData, double* inneTime1, double* innerTime2)
+{
+    auto start_time = chrono::high_resolution_clock::now();
+
+    fe_type currCol[4] = { 0, 0, 0, 0 };
+    fe_type recData[4] = { 0, 0, 0, 0 };
+    fe_type invMatr[4][4] = { {0,0,0,0}, {0,0,0,0}, {0,0,0,0}, {0,0,0,0} };
+
+
+    unsigned int AIdx = 0, lambdaId = 0, nodeId = 0;
+    ;
+
+    for (int i = 0; i < 2400; ++i)
+    {
+        GF.multiply_region.w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
+    }
+
+    auto  innerTime1End = chrono::high_resolution_clock::now();
+    auto  inner1Elapsed = chrono::duration_cast<chrono::microseconds>(innerTime1End - start_time);
+    *inneTime1 = std::chrono::duration<double>(inner1Elapsed).count();
+
+    auto innerTime2start = chrono::high_resolution_clock::now();
+
+    for (int i = 0; i < 1024; ++i)
+    {
+        for (int j = 0; j < 4; ++j)
+            currCol[j] = 0;
+
+        lambdasIdx[0] = (i & 0x3); //11
+        lambdasIdx[1] = (i & 0xC) >> 2; //1100
+        lambdasIdx[2] = (i & 0x30) >> 4; //110000
+        lambdasIdx[3] = (i & 0xC0) >> 6; //11000000
+        lambdasIdx[4] = (i & 0x300) >> 8; //1100000000
+
+        for (AIdx = 0; AIdx < 5; ++AIdx)
+        {
+            lambdaId = lambdasIdx[AIdx];
+
+            pCurrData = (fe_type*)(&sameLambdaRes[AIdx][lambdaId][0][0]);
+            currCol[0] ^= pCurrData[sameLambdaResCounter[AIdx][lambdaId]];
+
+            pCurrData = (fe_type*)(&sameLambdaRes[AIdx][lambdaId][1][0]);
+            currCol[1] ^= pCurrData[sameLambdaResCounter[AIdx][lambdaId]];
+
+            pCurrData = (fe_type*)(&sameLambdaRes[AIdx][lambdaId][2][0]);
+            currCol[2] ^= pCurrData[sameLambdaResCounter[AIdx][lambdaId]];
+
+            pCurrData = (fe_type*)(&sameLambdaRes[AIdx][lambdaId][3][0]);
+            currCol[3] ^= pCurrData[sameLambdaResCounter[AIdx][lambdaId]];
+
+            ++sameLambdaResCounter[AIdx][lambdaId];
+        }
+
+        ext_vand4_inv(invMatr, recNodesCoeff[i][0], recNodesCoeff[i][2], recNodesCoeff[i][3], recNodesCoeff[i][4]);
+
+        recData[0] = GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[0][0], currCol[0]);
+        recData[0] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[0][1], currCol[1]);
+        recData[0] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[0][2], currCol[2]);
+        recData[0] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[0][3], currCol[3]);
+
+        recData[1] = GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[1][0], currCol[0]);
+        recData[1] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[1][1], currCol[1]);
+        recData[1] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[1][2], currCol[2]);
+        recData[1] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[1][3], currCol[3]);
+
+        recData[2] = GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[2][0], currCol[0]);
+        recData[2] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[2][1], currCol[1]);
+        recData[2] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[2][2], currCol[2]);
+        recData[2] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[2][3], currCol[3]);
+
+        recData[3] = GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[3][0], currCol[0]);
+        recData[3] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[3][1], currCol[1]);
+        recData[3] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[3][2], currCol[2]);
+        recData[3] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[3][3], currCol[3]);
+
+        //pNodes[pNodesToRecoverIdx[0]].setData(i, currRecData[0]);
+        //pNodes[pNodesToRecoverIdx[1]].setData(i, currRecData[1]);
+        //pNodes[pNodesToRecoverIdx[2]].setData(i, currRecData[2]);
+        //pNodes[pNodesToRecoverIdx[3]].setData(i, currRecData[3]);
+
+    }
+    auto innerTime2End = chrono::high_resolution_clock::now();
+    auto inner2Elapsed = chrono::duration_cast<chrono::microseconds>(innerTime2End - innerTime2start);
+    *innerTime2 = std::chrono::duration<double>(inner2Elapsed).count();
+    // *innerTime2 = timer_split(&start_time2);
+
+    auto  end_time = chrono::high_resolution_clock::now();
+    auto  elapsed = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
+    double elapsed_time = std::chrono::duration<double>(elapsed).count();
+    //double elapsed_time = timer_split(&start_time);
+
+    return elapsed_time;
+}
+
 // 4 nodes recovery procedure extended
 double ext_recover_4_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes, double* inneTime1, double* innerTime2)
 {
@@ -273,9 +368,6 @@ double ext_recover_4_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes, doubl
     int i = 0, j = 0, k = 0, v = 0;
     unsigned int AIdx = 0, lambdaId = 0, nodeId = 0;
     fe_type *pCurrData = 0, *pCurrRes = 0;
-    fe_type currCol[4] = { 0, 0, 0, 0 };
-    fe_type recData[4] = { 0, 0, 0, 0 };
-    fe_type invMatr[4][4] = { {0,0,0,0}, {0,0,0,0}, {0,0,0,0}, {0,0,0,0} };
 
     for (i = 0; i < 4; ++i)
         for (j = 0; j < 154; ++j)
@@ -371,125 +463,7 @@ double ext_recover_4_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes, doubl
         }
     }
 
-    //uint8_t* src, * dst;
-    //gf_val_32_t coeff = 0;
-
-    //double start_time = 0;
-    //double start_time2 = 0;
-   // timer_start(&start_time);
-    auto start_time = chrono::high_resolution_clock::now();
-
-    for (i = 0; i < 2400; ++i)
-    {
-        GF.multiply_region.w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
-    }
-
-    //for (j = 0; j < 4; ++j)
-    //{
-    //    for (AIdx = 0; AIdx < 5; ++AIdx)
-    //    {
-    //        for (i = 0; i < availNodesCounter[AIdx]; ++i)
-    //        {
-    //            nodeId = availNodes[AIdx][i];
-
-    //            for (k = 0; k < 4; ++k)
-    //            {
-    //                src = &sameLambdaData[nodeId][0][0];
-    //                dst = &sameLambdaRes[AIdx][0][j][0];
-    //                coeff = coeffPow[nodeId][0][j];
-    //                //GF.multiply_region.w32(&GF, src, dst, coeff, 512, 1);
-    //            }
-
-    //            //GF.multiply_region.w32(&GF, &sameLambdaData[nodeId][0][0], &sameLambdaRes[AIdx][0][j][0], coeffPow[nodeId][0][j], 512, 1);
-    //            //GF.multiply_region.w32(&GF, &sameLambdaData[nodeId][1][0], &sameLambdaRes[AIdx][1][j][0], coeffPow[nodeId][1][j], 512, 1);
-    //            //GF.multiply_region.w32(&GF, &sameLambdaData[nodeId][2][0], &sameLambdaRes[AIdx][2][j][0], coeffPow[nodeId][2][j], 512, 1);
-    //            //GF.multiply_region.w32(&GF, &sameLambdaData[nodeId][3][0], &sameLambdaRes[AIdx][3][j][0], coeffPow[nodeId][3][j], 512, 1);
-    //        }
-    //    }
-
-    //   /* for (i = 0; i < 1024; ++i)
-    //    {
-    //        resVectors[j][i] = (*(pArray2Vector[0][i])) ^ (*(pArray2Vector[1][i])) ^ (*(pArray2Vector[2][i])) ^ (*(pArray2Vector[3][i])) ^ (*(pArray2Vector[4][i]));
-    //    }*/
-    //}
-     //*inneTime1 = timer_split(&start_time);
-     
-     //timer_start(&start_time2);
-    auto  innerTime1End = chrono::high_resolution_clock::now();
-    auto  inner1Elapsed = chrono::duration_cast<chrono::microseconds>(innerTime1End - start_time);
-    *inneTime1 = std::chrono::duration<double>(inner1Elapsed).count();
-
-    auto innerTime2start = chrono::high_resolution_clock::now();
-
-    for (i = 0; i < 1024; ++i)
-    {
-        for (j = 0; j < 4; ++j)
-            currCol[j] = 0;
-
-        lambdasIdx[0] = (i & 0x3); //11
-        lambdasIdx[1] = (i & 0xC) >> 2; //1100
-        lambdasIdx[2] = (i & 0x30) >> 4; //110000
-        lambdasIdx[3] = (i & 0xC0) >> 6; //11000000
-        lambdasIdx[4] = (i & 0x300) >> 8; //1100000000
-
-        for (AIdx = 0; AIdx < 5; ++AIdx)
-        {
-            lambdaId = lambdasIdx[AIdx];
-            
-            pCurrData = (fe_type*)(&sameLambdaRes[AIdx][lambdaId][0][0]);
-            currCol[0] ^= pCurrData[sameLambdaResCounter[AIdx][lambdaId]];
-
-            pCurrData = (fe_type*)(&sameLambdaRes[AIdx][lambdaId][1][0]);
-            currCol[1] ^= pCurrData[sameLambdaResCounter[AIdx][lambdaId]];
-
-            pCurrData = (fe_type*)(&sameLambdaRes[AIdx][lambdaId][2][0]);
-            currCol[2] ^= pCurrData[sameLambdaResCounter[AIdx][lambdaId]];
-
-            pCurrData = (fe_type*)(&sameLambdaRes[AIdx][lambdaId][3][0]);
-            currCol[3] ^= pCurrData[sameLambdaResCounter[AIdx][lambdaId]];
-
-            ++sameLambdaResCounter[AIdx][lambdaId];
-        }
-
-        ext_vand4_inv(invMatr, recNodesCoeff[i][0], recNodesCoeff[i][2], recNodesCoeff[i][3], recNodesCoeff[i][4]);
-
-        recData[0]  = GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[0][0], currCol[0]);
-        recData[0] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[0][1], currCol[1]);
-        recData[0] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[0][2], currCol[2]);
-        recData[0] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[0][3], currCol[3]);
-
-        recData[1] = GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[1][0], currCol[0]);
-        recData[1] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[1][1], currCol[1]);
-        recData[1] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[1][2], currCol[2]);
-        recData[1] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[1][3], currCol[3]);
-
-        recData[2] = GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[2][0], currCol[0]);
-        recData[2] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[2][1], currCol[1]);
-        recData[2] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[2][2], currCol[2]);
-        recData[2] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[2][3], currCol[3]);
-
-        recData[3] = GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[3][0], currCol[0]);
-        recData[3] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[3][1], currCol[1]);
-        recData[3] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[3][2], currCol[2]);
-        recData[3] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[3][3], currCol[3]);
-
-        //pNodes[pNodesToRecoverIdx[0]].setData(i, currRecData[0]);
-        //pNodes[pNodesToRecoverIdx[1]].setData(i, currRecData[1]);
-        //pNodes[pNodesToRecoverIdx[2]].setData(i, currRecData[2]);
-        //pNodes[pNodesToRecoverIdx[3]].setData(i, currRecData[3]);
-
-    }
-    auto innerTime2End = chrono::high_resolution_clock::now();
-    auto inner2Elapsed = chrono::duration_cast<chrono::microseconds>(innerTime2End - innerTime2start);
-    * innerTime2 = std::chrono::duration<double>(inner2Elapsed).count();
-   // *innerTime2 = timer_split(&start_time2);
-
-    auto  end_time =  chrono::high_resolution_clock::now();
-    auto  elapsed = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
-    double elapsed_time = std::chrono::duration<double>(elapsed).count();
-    //double elapsed_time = timer_split(&start_time);
-
-    return elapsed_time; //(double)elapsed_time.count();
+    return ext_recover_4_nodes_core(lambdasIdx, pCurrData, inneTime1, innerTime2);
 }
 
 // Definitions of global auxiliary variables for 2, 3 and 4 nodes recovery procedures
@@ -511,6 +485,58 @@ FieldElement sameASigma[31];
 FieldElement sameASigmaPow2[31];
 FieldElement sameASigmaPow3[31];
 FieldElement sameACol[4][3];
+
+double recover_4_nodes_core(unsigned int* pNodesToRecoverIdx, unsigned int ADataNodesNum[5], Node* pNodes)
+{
+    FieldElement sumCol[4];
+    FieldElement invMatr[4][4], currRecData[4];
+    FieldElement currSum[5], currSigmaSum[5], currSigmaPow2Sum[5], currSigmaPow3Sum[5];
+
+    auto start_time = chrono::high_resolution_clock::now();
+    int i, j, k;
+
+    for (i = 0; i < 1024; ++i)
+    {
+        for (j = 0; j < 5; ++j)
+        {
+            currSum[j] = ZERO_ELEMENT;
+            currSigmaSum[j] = ZERO_ELEMENT;
+            currSigmaPow2Sum[j] = ZERO_ELEMENT;
+            currSigmaPow3Sum[j] = ZERO_ELEMENT;
+
+            for (k = 0; k < ADataNodesNum[j]; ++k)
+            {
+                currSum[j] += AData[i][j][k];
+                currSigmaSum[j] += ASigmas[j][k] * AData[i][j][k];
+                currSigmaPow2Sum[j] += ASigmasPow2[j][k] * AData[i][j][k];
+                currSigmaPow3Sum[j] += ASigmasPow3[j][k] * AData[i][j][k];
+            }
+        }
+        sumCol[0] = currSum[0] + currSum[1] + currSum[2] + currSum[3] + currSum[4];
+        sumCol[1] = currSigmaSum[0] * ACol[i][0][0] + currSigmaSum[1] * ACol[i][1][0] + currSigmaSum[2] * ACol[i][2][0] + currSigmaSum[3] * ACol[i][3][0] + currSigmaSum[4] * ACol[i][4][0];
+        sumCol[2] = currSigmaPow2Sum[0] * ACol[i][0][1] + currSigmaPow2Sum[1] * ACol[i][1][1] + currSigmaPow2Sum[2] * ACol[i][2][1] + currSigmaPow2Sum[3] * ACol[i][3][1] + currSigmaPow2Sum[4] * ACol[i][4][1];
+        sumCol[3] = currSigmaPow3Sum[0] * ACol[i][0][2] + currSigmaPow3Sum[1] * ACol[i][1][2] + currSigmaPow3Sum[2] * ACol[i][2][2] + currSigmaPow3Sum[3] * ACol[i][3][2] + currSigmaPow3Sum[4] * ACol[i][4][2];
+
+        vand4_inv(invMatr, nodesToRecLambdas[i][0], nodesToRecLambdas[i][1], nodesToRecLambdas[i][2], nodesToRecLambdas[i][3]);
+
+        currRecData[0] = invMatr[0][0] * sumCol[0] + invMatr[0][1] * sumCol[1] + invMatr[0][2] * sumCol[2] + invMatr[0][3] * sumCol[3];
+        currRecData[1] = invMatr[1][0] * sumCol[0] + invMatr[1][1] * sumCol[1] + invMatr[1][2] * sumCol[2] + invMatr[1][3] * sumCol[3];
+        currRecData[2] = invMatr[2][0] * sumCol[0] + invMatr[2][1] * sumCol[1] + invMatr[2][2] * sumCol[2] + invMatr[2][3] * sumCol[3];
+        currRecData[3] = invMatr[3][0] * sumCol[0] + invMatr[3][1] * sumCol[1] + invMatr[3][2] * sumCol[2] + invMatr[3][3] * sumCol[3];
+
+        pNodes[pNodesToRecoverIdx[0]].setData(i, currRecData[0]);
+        pNodes[pNodesToRecoverIdx[1]].setData(i, currRecData[1]);
+        pNodes[pNodesToRecoverIdx[2]].setData(i, currRecData[2]);
+        pNodes[pNodesToRecoverIdx[3]].setData(i, currRecData[3]);
+
+    }
+
+    auto  end_time = chrono::high_resolution_clock::now();
+    auto  elapsed = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
+    double elapsed_time = std::chrono::duration<double>(elapsed).count();
+    return elapsed_time;
+
+}
 
 // 4 nodes recovery procedure
 double recover_4_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
@@ -602,48 +628,8 @@ double recover_4_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
 
    // double start_time = 0;
     //timer_start(&start_time);
-    auto start_time = chrono::high_resolution_clock::now();
 
-    for (i = 0; i < 1024; ++i)
-    {   
-        for (j = 0; j < 5; ++j)
-        {
-            currSum[j] = ZERO_ELEMENT;
-            currSigmaSum[j] = ZERO_ELEMENT;
-            currSigmaPow2Sum[j] = ZERO_ELEMENT;
-            currSigmaPow3Sum[j] = ZERO_ELEMENT;
-
-            for (k = 0; k < ADataNodesNum[j]; ++k)
-            {
-                currSum[j] += AData[i][j][k];
-                currSigmaSum[j] += ASigmas[j][k]*AData[i][j][k];
-                currSigmaPow2Sum[j] += ASigmasPow2[j][k] * AData[i][j][k];
-                currSigmaPow3Sum[j] += ASigmasPow3[j][k] * AData[i][j][k];
-            }
-        }
-        sumCol[0] = currSum[0] + currSum[1] + currSum[2] + currSum[3] + currSum[4];
-        sumCol[1] = currSigmaSum[0] * ACol[i][0][0] + currSigmaSum[1] * ACol[i][1][0] + currSigmaSum[2] * ACol[i][2][0] + currSigmaSum[3] * ACol[i][3][0] + currSigmaSum[4] * ACol[i][4][0];
-        sumCol[2] = currSigmaPow2Sum[0] * ACol[i][0][1] + currSigmaPow2Sum[1] * ACol[i][1][1] + currSigmaPow2Sum[2] * ACol[i][2][1] + currSigmaPow2Sum[3] * ACol[i][3][1] + currSigmaPow2Sum[4] * ACol[i][4][1];
-        sumCol[3] = currSigmaPow3Sum[0] * ACol[i][0][2] + currSigmaPow3Sum[1] * ACol[i][1][2] + currSigmaPow3Sum[2] * ACol[i][2][2] + currSigmaPow3Sum[3] * ACol[i][3][2] + currSigmaPow3Sum[4] * ACol[i][4][2];
-
-        vand4_inv(invMatr, nodesToRecLambdas[i][0], nodesToRecLambdas[i][1],nodesToRecLambdas[i][2], nodesToRecLambdas[i][3]);
-        
-        currRecData[0] = invMatr[0][0] * sumCol[0] + invMatr[0][1] * sumCol[1] + invMatr[0][2] * sumCol[2] + invMatr[0][3] * sumCol[3];
-        currRecData[1] = invMatr[1][0] * sumCol[0] + invMatr[1][1] * sumCol[1] + invMatr[1][2] * sumCol[2] + invMatr[1][3] * sumCol[3];
-        currRecData[2] = invMatr[2][0] * sumCol[0] + invMatr[2][1] * sumCol[1] + invMatr[2][2] * sumCol[2] + invMatr[2][3] * sumCol[3];
-        currRecData[3] = invMatr[3][0] * sumCol[0] + invMatr[3][1] * sumCol[1] + invMatr[3][2] * sumCol[2] + invMatr[3][3] * sumCol[3];
-
-        pNodes[pNodesToRecoverIdx[0]].setData(i, currRecData[0]);
-        pNodes[pNodesToRecoverIdx[1]].setData(i, currRecData[1]);
-        pNodes[pNodesToRecoverIdx[2]].setData(i, currRecData[2]);
-        pNodes[pNodesToRecoverIdx[3]].setData(i, currRecData[3]);
-
-    }
-
-    auto  end_time = chrono::high_resolution_clock::now();
-    auto  elapsed = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
-    double elapsed_time = std::chrono::duration<double>(elapsed).count();
-    return elapsed_time;
+    return recover_4_nodes_core(pNodesToRecoverIdx, ADataNodesNum, pNodes);
 }
 
 // 3 nodes recovery procedure
