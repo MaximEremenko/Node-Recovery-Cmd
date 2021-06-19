@@ -32,6 +32,11 @@
 #include "FieldElement.h"
 #include "ConstructionDefs.h"
 
+extern "C"
+{
+#include "gf_optimized.h"
+}
+
 using namespace std;
 
 //=======================================================================================================================================
@@ -281,7 +286,7 @@ double ext_recover_4_nodes_core(int lambdasIdx[5], fe_type* pCurrData, double* i
 
     for (int i = 0; i < 2400; ++i)
     {
-        GF.multiply_region.w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
+        GF_multiply_region_w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
     }
 
     auto  innerTime1End = chrono::high_resolution_clock::now();
@@ -1209,6 +1214,28 @@ int main()
     else
         printf("PASS!\n");
 
+    for (int i = 0; i < 4; ++i)
+        pTestNodes[i] = pNodes[pNodesToRecoverIdx[i]];
+
+    printf("4 nodes ext recovery check: ");
+    double time1, time2;
+    ext_recover_4_nodes(pNodesToRecoverIdx, pNodes, &time1, &time2);
+
+    failFlag = 0;
+    for (int i = 0; i < 4; ++i)
+    {
+        for (int j = 0; j < 1024; ++j)
+        {
+            if (pTestNodes[i].getData(j).getElement() != pNodes[pNodesToRecoverIdx[i]].getData(j).getElement())
+                failFlag = 1;
+        }
+    }
+    if (failFlag)
+        printf("FAILED!\n");
+    else
+        printf("PASS!\n");
+
+
     printf("3 nodes recovery check: ");
     recover_3_nodes(pNodesToRecoverIdx, pNodes);
     failFlag = 0;
@@ -1259,7 +1286,7 @@ int main()
 
     unsigned int nodesToRecoverNum = 1;
 
-    int testsNum = 10000;
+    int testsNum = 1000;
 
     unsigned int pTestNodesToRecoverIdx[4] = { 1, 2, 3, 4 };
     unsigned int rndId = 0;
@@ -1298,10 +1325,10 @@ int main()
                 elapsed_time[tests] = recover_3_nodes(pTestNodesToRecoverIdx, pNodes);
                 break;
             case 4:
-                elapsed_time[tests] = ext_recover_4_nodes(pTestNodesToRecoverIdx, pNodes, &(inner_time1[tests]), &(inner_time2[tests]));
+                elapsed_time[tests] = recover_4_nodes(pTestNodesToRecoverIdx, pNodes);
                 break;
             case 5:
-                elapsed_time[tests] = recover_4_nodes(pTestNodesToRecoverIdx, pNodes);
+                elapsed_time[tests] = ext_recover_4_nodes(pTestNodesToRecoverIdx, pNodes, &(inner_time1[tests]), &(inner_time2[tests]));
                 break;
             default:
                 printf("Invalid number of nodes to recover!");
