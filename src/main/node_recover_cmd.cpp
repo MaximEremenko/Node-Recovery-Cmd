@@ -272,7 +272,7 @@ uint8_t* resDst[2400];
 gf_val_32_t currCoeff[2400];
 
 
-double ext_recover_4_nodes_core(int lambdasIdx[5], fe_type* pCurrData, double* inneTime1, double* innerTime2)
+double ext_recover_4_nodes_core(unsigned int* pNodesToRecoverIdx, Node* pNodes, int lambdasIdx[5], fe_type* pCurrData, double* inneTime1, double* innerTime2)
 {
     auto start_time = chrono::high_resolution_clock::now();
 
@@ -286,8 +286,8 @@ double ext_recover_4_nodes_core(int lambdasIdx[5], fe_type* pCurrData, double* i
 
     for (int i = 0; i < 2400; ++i)
     {
-        //GF.multiply_region.w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
-        GF_multiply_region_w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
+        GF.multiply_region.w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
+        //GF_multiply_region_w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
     }
 
     auto  innerTime1End = chrono::high_resolution_clock::now();
@@ -348,10 +348,10 @@ double ext_recover_4_nodes_core(int lambdasIdx[5], fe_type* pCurrData, double* i
         recData[3] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[3][2], currCol[2]);
         recData[3] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[3][3], currCol[3]);
 
-        //pNodes[pNodesToRecoverIdx[0]].setData(i, currRecData[0]);
-        //pNodes[pNodesToRecoverIdx[1]].setData(i, currRecData[1]);
-        //pNodes[pNodesToRecoverIdx[2]].setData(i, currRecData[2]);
-        //pNodes[pNodesToRecoverIdx[3]].setData(i, currRecData[3]);
+        pNodes[pNodesToRecoverIdx[0]].setData(i, recData[0]);
+        pNodes[pNodesToRecoverIdx[1]].setData(i, recData[1]);
+        pNodes[pNodesToRecoverIdx[2]].setData(i, recData[2]);
+        pNodes[pNodesToRecoverIdx[3]].setData(i, recData[3]);
 
     }
     auto innerTime2End = chrono::high_resolution_clock::now();
@@ -469,7 +469,7 @@ double ext_recover_4_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes, doubl
         }
     }
 
-    return ext_recover_4_nodes_core(lambdasIdx, pCurrData, inneTime1, innerTime2);
+    return ext_recover_4_nodes_core(pNodesToRecoverIdx, pNodes, lambdasIdx, pCurrData, inneTime1, innerTime2);
 }
 
 // Definitions of global auxiliary variables for 2, 3 and 4 nodes recovery procedures
@@ -1197,7 +1197,32 @@ int main()
         printf("PASS!\n");
 
     for (int i = 0; i < 4; ++i)
+    {
         pTestNodes[i] = pNodes[pNodesToRecoverIdx[i]];
+        for (int j = 0; j < 1024; ++j)
+            pNodes[pNodesToRecoverIdx[i]].setData(j, 0);
+    }
+
+    printf("4 nodes ext recovery check: ");
+    double time1, time2;
+    ext_recover_4_nodes(pNodesToRecoverIdx, pNodes, &time1, & time2);
+
+    failFlag = 0;
+    for (int i = 0; i < 4; ++i)
+    {
+        for (int j = 0; j < 1024; ++j)
+        {
+            if (pTestNodes[i].getData(j).getElement() != pNodes[pNodesToRecoverIdx[i]].getData(j).getElement())
+                failFlag = 1;
+        }
+    }
+    if (failFlag)
+        printf("FAILED!\n");
+    else
+        printf("PASS!\n");
+
+
+
 
     printf("4 nodes recovery check: ");
     recover_4_nodes(pNodesToRecoverIdx, pNodes);
@@ -1217,24 +1242,6 @@ int main()
 
     for (int i = 0; i < 4; ++i)
         pTestNodes[i] = pNodes[pNodesToRecoverIdx[i]];
-
-    printf("4 nodes ext recovery check: ");
-    double time1, time2;
-    ext_recover_4_nodes(pNodesToRecoverIdx, pNodes, &time1, &time2);
-
-    failFlag = 0;
-    for (int i = 0; i < 4; ++i)
-    {
-        for (int j = 0; j < 1024; ++j)
-        {
-            if (pTestNodes[i].getData(j).getElement() != pNodes[pNodesToRecoverIdx[i]].getData(j).getElement())
-                failFlag = 1;
-        }
-    }
-    if (failFlag)
-        printf("FAILED!\n");
-    else
-        printf("PASS!\n");
 
 
     printf("3 nodes recovery check: ");
