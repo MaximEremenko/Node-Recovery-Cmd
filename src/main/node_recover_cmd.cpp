@@ -286,6 +286,7 @@ double ext_recover_4_nodes_core(int lambdasIdx[5], fe_type* pCurrData, double* i
 
     for (int i = 0; i < 2400; ++i)
     {
+        //GF.multiply_region.w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
         GF_multiply_region_w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
     }
 

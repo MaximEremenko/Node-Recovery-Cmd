@@ -27,6 +27,14 @@ GF_w16_log_multiply(gf_t* gf, gf_val_32_t a, gf_val_32_t b)
 }
 
 
+inline
+gf_val_32_t
+GF_w16_log_multiply_by_log(struct gf_w16_logtable_data* ltd, gf_val_32_t a, gf_val_32_t b)
+{
+	return (a == 0 || b == 0) ? 0 : ltd->antilog_tbl[(int)ltd->log_tbl[a] + (int)ltd->log_tbl[b]];
+}
+
+
 
 void GF_multiply_region_w32(gf_t* gf, uint8_t* src, uint8_t* dest, gf_val_32_t val, int bytes, int xor)
 {
@@ -44,10 +52,14 @@ void GF_multiply_region_w32(gf_t* gf, uint8_t* src, uint8_t* dest, gf_val_32_t v
 	gf_set_region_data(&rd, gf, src, dest, bytes, val, xor, 32);
 	gf_do_initial_region_alignment(&rd);
 
+	struct gf_w16_logtable_data* ltd;
+	ltd = (struct gf_w16_logtable_data*)((gf_internal_t*)gf->scratch)->private;
+
+
 	for (j = 0; j < 16; j++) {
 		for (i = 0; i < 4; i++) {
 			c = (j << (i * 4));
-			prod = GF_w16_log_multiply(gf, c, val);
+			prod = GF_w16_log_multiply_by_log(ltd, c, val);
 			low[i][j] = (prod & 0xff);
 			high[i][j] = (prod >> 8);
 		}
