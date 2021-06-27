@@ -31,7 +31,8 @@ inline
 gf_val_32_t
 GF_w16_log_multiply_by_log(struct gf_w16_logtable_data* ltd, gf_val_32_t a, gf_val_32_t b)
 {
-	return b == 0 ? 0 : ltd->antilog_tbl[(int)ltd->log_tbl[a] + (int)ltd->log_tbl[b]];
+	// Нам гарантировано, что b != 0 , так как это случай обрабатывается отдельно
+	return a == 0 ? 0 : ltd->antilog_tbl[(int)ltd->log_tbl[a] + (int)ltd->log_tbl[b]];
 }
 
 
@@ -55,30 +56,21 @@ void GF_multiply_region_w32(gf_t* gf, uint8_t* src, uint8_t* dest, gf_val_32_t v
 	struct gf_w16_logtable_data* ltd;
 	ltd = (struct gf_w16_logtable_data*)((gf_internal_t*)gf->scratch)->private;
 
-
-	if (ltd != 0)
-	{
-		for (j = 0; j < 16; j++) {
-			for (i = 0; i < 4; i++) {
-				c = (j << (i * 4));
-				prod = GF_w16_log_multiply_by_log(ltd, c, val);
-				low[i][j] = (prod & 0xff);
-				high[i][j] = (prod >> 8);
-			}
-		}
-
+	// Нам гарантировано, что val != 0 , так как это случай обрабатывается отдельно
+	for (j = 0; j < 16; j++) {
 		for (i = 0; i < 4; i++) {
-			tlow[i] = _mm_loadu_si128((__m128i*)low[i]);
-			thigh[i] = _mm_loadu_si128((__m128i*)high[i]);
+			c = (j << (i * 4));
+			prod = GF_w16_log_multiply_by_log(ltd, c, val);
+			low[i][j] = (prod & 0xff);
+			high[i][j] = (prod >> 8);
 		}
 	}
-	else
-	{
-		for (i = 0; i < 4; i++) {
-			tlow[i] = _mm_setzero_si128(); 
-			thigh[i] = _mm_setzero_si128();
-		}
+
+	for (i = 0; i < 4; i++) {
+		tlow[i] = _mm_loadu_si128((__m128i*)low[i]);
+		thigh[i] = _mm_loadu_si128((__m128i*)high[i]);
 	}
+
 
 	s64 = (uint64_t*)rd.s_start;
 	d64 = (uint64_t*)rd.d_start;

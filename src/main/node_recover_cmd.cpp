@@ -321,6 +321,8 @@ gf_val_32_t currCoeff[2400];
 
 double ext_recover_4_nodes_core(unsigned int* pNodesToRecoverIdx, Node* pNodes, int lambdasIdx[5], fe_type* pCurrData, double* inneTime1, double* innerTime2)
 {
+    uint8_t dstTest[512];
+
     auto start_time = chrono::high_resolution_clock::now();
 
     fe_type currCol[4] = { 0, 0, 0, 0 };
@@ -333,8 +335,19 @@ double ext_recover_4_nodes_core(unsigned int* pNodesToRecoverIdx, Node* pNodes, 
 
     for (int i = 0; i < 2400; ++i)
     {
+//        GF_multiply_region_w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
         GF.multiply_region.w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
-        //GF_multiply_region_w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
+
+/*       
+        memcpy(dstTest, resDst[i], 512);
+        GF.multiply_region.w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
+        GF_multiply_region_w32(&GF, dataSrc[i], dstTest, currCoeff[i], 512, 1);
+        if (memcmp(resDst[i], dstTest, 512) != 0)
+        {
+            printf("test failed\n");
+            exit(0);
+        }
+        */
     }
 
     auto  innerTime1End = chrono::high_resolution_clock::now();
