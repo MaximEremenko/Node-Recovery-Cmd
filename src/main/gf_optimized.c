@@ -32,9 +32,9 @@ gf_val_32_t
 GF_w16_log_multiply_by_log(struct gf_w16_logtable_data* ltd, gf_val_32_t a, int log_b)
 {
 	// Нам гарантировано, что b != 0 , так как это случай обрабатывается отдельно
-	return a == 0 ? 0 : ltd->antilog_tbl[(int)ltd->log_tbl[a] + log_b];
+	// для a=0 эта функция тоже не вызывается
+	return ltd->antilog_tbl[(int)ltd->log_tbl[a] + log_b];
 }
-
 
 
 void GF_multiply_region_w32(gf_t* gf, uint8_t* src, uint8_t* dest, gf_val_32_t val, int bytes, int xor)
@@ -59,7 +59,18 @@ void GF_multiply_region_w32(gf_t* gf, uint8_t* src, uint8_t* dest, gf_val_32_t v
 	// Нам гарантировано, что val != 0 , так как это случай обрабатывается отдельно
 	int logVal = (int)ltd->log_tbl[val];
 
-	for (j = 0; j < 16; j++) {
+	// Пропускаем 0 итерацию цикла, так как в её результате гарантировано получается результат 0 
+	low[0][0] = 0;
+	low[1][0] = 0;
+	low[2][0] = 0;
+	low[3][0] = 0;
+
+	high[0][0] = 0;
+	high[1][0] = 0;
+	high[2][0] = 0;
+	high[3][0] = 0;
+	
+	for (j = 1; j < 16; j++) {
 		for (i = 0; i < 4; i++) {
 			c = (j << (i * 4));
 			prod = GF_w16_log_multiply_by_log(ltd, c, logVal);
