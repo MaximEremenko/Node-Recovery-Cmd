@@ -112,9 +112,9 @@ public:
     
     inline FieldElement operator~ () const
     {
-        //FieldElement result(INV_EL[m_iElement-1]);
+        FieldElement result(INV_EL[m_iElement-1]);
         //FieldElement result(GF.inverse.w32(&GF, m_iElement));
-        FieldElement result(GF_W16_INLINE_DIV(LOG16, ALOG16, 1, m_iElement));
+        //FieldElement result(GF_W16_INLINE_DIV(LOG16, ALOG16, 1, m_iElement));
         return result;
     }
 private:
