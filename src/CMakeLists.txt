@@ -19,6 +19,8 @@ link_directories(.)
 if (WIN32)
   add_executable(NodeRecoveryCmd 
     main/node_recover_cmd.cpp
+	main/gf_optimized.c
+	main/gf_optimized.h
     main/Node.h
 	main/ConstructionDefs.h
 	field/FieldDefs.h
@@ -27,6 +29,8 @@ if (WIN32)
 else()
   add_executable(NodeRecoveryCmd 
     main/node_recover_cmd.cpp
+	main/gf_optimized.c
+	main/gf_optimized.h
     main/Node.h
 	main/ConstructionDefs.h
 	field/FieldDefs.h
