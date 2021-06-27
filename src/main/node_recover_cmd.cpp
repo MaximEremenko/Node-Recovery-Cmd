@@ -181,6 +181,53 @@ void vand4_inv(FieldElement B[4][4], FieldElement a, FieldElement b, FieldElemen
     B[3][3] = w3;
 }
 
+// Inversion of Vandermond matrix of size 4x4
+void vand4_inv(fe_type B[4][4], FieldElement a, FieldElement b, FieldElement c, FieldElement d)
+{
+    FieldElement ab = a + b;
+    FieldElement ac = a + c;
+    FieldElement ad = a + d;
+    FieldElement bc = b + c;
+    FieldElement bd = b + d;
+    FieldElement cd = c + d;
+    FieldElement abcd = ab + cd;
+
+    FieldElement a_b_c_d = a * b * c * d;
+    FieldElement c_c = c * c;
+    FieldElement d_d = d * d;
+
+    FieldElement inva = ~a;
+    FieldElement invb = ~b;
+    FieldElement invc = ~c;
+    FieldElement invd = ~d;
+
+    FieldElement w0 = ~(ab * ac * ad);
+    FieldElement w1 = ~(ab * bc * bd);
+    FieldElement w2 = ~(ac * bc * cd);
+    FieldElement w3 = ~(ad * bd * cd);
+
+    B[0][0] = (w0 * a_b_c_d * inva).getElement();
+    B[0][1] = (w0 * (bd * cd + d_d)).getElement();
+    B[0][2] = (w0 * (abcd + a)).getElement();
+    B[0][3] = w0.getElement();
+
+    B[1][0] = (w1 * a_b_c_d * invb).getElement();
+    B[1][1] = (w1 * (ad * cd + d_d)).getElement();
+    B[1][2] = (w1 * (abcd + b)).getElement();
+    B[1][3] = w1.getElement();
+
+    B[2][0] = (w2 * a_b_c_d * invc).getElement();
+    B[2][1] = (w2 * (ad * bd + d_d)).getElement();
+    B[2][2] = (w2 * (abcd + c)).getElement();
+    B[2][3] = w2.getElement();
+
+    B[3][0] = (w3 * a_b_c_d * invd).getElement();
+    B[3][1] = (w3 * (ac * bc + c_c)).getElement();
+    B[3][2] = (w3 * (abcd + d)).getElement();
+    B[3][3] = w3.getElement();
+}
+
+
 // Inversion of Vandermond matrix of size 3x3
 void vand3_inv(FieldElement B[3][3], FieldElement a, FieldElement b, FieldElement c)
 {
@@ -326,7 +373,7 @@ double ext_recover_4_nodes_core(unsigned int* pNodesToRecoverIdx, Node* pNodes, 
             ++sameLambdaResCounter[AIdx][lambdaId];
         }
 
-        ext_vand4_inv(invMatr, recNodesCoeff[i][0], recNodesCoeff[i][2], recNodesCoeff[i][3], recNodesCoeff[i][4]);
+        vand4_inv(invMatr, recNodesCoeff[i][0], recNodesCoeff[i][2], recNodesCoeff[i][3], recNodesCoeff[i][4]);
 
         recData[0] = GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[0][0], currCol[0]);
         recData[0] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[0][1], currCol[1]);
