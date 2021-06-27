@@ -98,41 +98,41 @@ void ext_vand4_inv(fe_type B[4][4], fe_type a, fe_type b, fe_type c, fe_type d)
 
     fe_type w3_d = GF_W16_INLINE_MULT(LOG16, ALOG16, w3, d);
 
-    B[0][0] = GF_W16_INLINE_DIV(LOG16, ALOG16, a_b_c_d, w0_a);
+    B[0][0] = GF_W16_INLINE_DIV(LOG16, DALOG16, a_b_c_d, w0_a);
     
     B[0][1] = GF_W16_INLINE_MULT(LOG16, ALOG16, bd, cd)^d_d;
-    B[0][1] = GF_W16_INLINE_DIV(LOG16, ALOG16, B[0][1], w0);
+    B[0][1] = GF_W16_INLINE_DIV(LOG16, DALOG16, B[0][1], w0);
     
-    B[0][2] = GF_W16_INLINE_DIV(LOG16, ALOG16, abcd^a, w0);
+    B[0][2] = GF_W16_INLINE_DIV(LOG16, DALOG16, abcd^a, w0);
 
-    B[0][3] = GF_W16_INLINE_DIV(LOG16, ALOG16, 1, w0);
+    B[0][3] = GF_W16_INLINE_DIV(LOG16, DALOG16, 1, w0);
 
-    B[1][0] = GF_W16_INLINE_DIV(LOG16, ALOG16, a_b_c_d, w1_b);
+    B[1][0] = GF_W16_INLINE_DIV(LOG16, DALOG16, a_b_c_d, w1_b);
 
     B[1][1] = GF_W16_INLINE_MULT(LOG16, ALOG16, ad, cd) ^ d_d;
-    B[1][1] = GF_W16_INLINE_DIV(LOG16, ALOG16, B[1][1], w1);
+    B[1][1] = GF_W16_INLINE_DIV(LOG16, DALOG16, B[1][1], w1);
 
-    B[1][2] = GF_W16_INLINE_DIV(LOG16, ALOG16, abcd ^ b, w1);
+    B[1][2] = GF_W16_INLINE_DIV(LOG16, DALOG16, abcd ^ b, w1);
 
-    B[1][3] = GF_W16_INLINE_DIV(LOG16, ALOG16, 1, w1);
+    B[1][3] = GF_W16_INLINE_DIV(LOG16, DALOG16, 1, w1);
 
-    B[2][0] = GF_W16_INLINE_DIV(LOG16, ALOG16, a_b_c_d, w2_c);
+    B[2][0] = GF_W16_INLINE_DIV(LOG16, DALOG16, a_b_c_d, w2_c);
 
     B[2][1] = GF_W16_INLINE_MULT(LOG16, ALOG16, ad, bd) ^ d_d;
-    B[2][1] = GF_W16_INLINE_DIV(LOG16, ALOG16, B[2][1], w2);
+    B[2][1] = GF_W16_INLINE_DIV(LOG16, DALOG16, B[2][1], w2);
 
-    B[2][2] = GF_W16_INLINE_DIV(LOG16, ALOG16, abcd ^ c, w2);
+    B[2][2] = GF_W16_INLINE_DIV(LOG16, DALOG16, abcd ^ c, w2);
 
-    B[2][3] = GF_W16_INLINE_DIV(LOG16, ALOG16, 1, w2);
+    B[2][3] = GF_W16_INLINE_DIV(LOG16, DALOG16, 1, w2);
 
-    B[3][0] = GF_W16_INLINE_DIV(LOG16, ALOG16, a_b_c_d, w3_d);
+    B[3][0] = GF_W16_INLINE_DIV(LOG16, DALOG16, a_b_c_d, w3_d);
 
     B[3][1] = GF_W16_INLINE_MULT(LOG16, ALOG16, ac, bc) ^ d_d;
-    B[3][1] = GF_W16_INLINE_DIV(LOG16, ALOG16, B[3][1], w3);
+    B[3][1] = GF_W16_INLINE_DIV(LOG16, DALOG16, B[3][1], w3);
 
-    B[3][2] = GF_W16_INLINE_DIV(LOG16, ALOG16, abcd ^ d, w3);
+    B[3][2] = GF_W16_INLINE_DIV(LOG16, DALOG16, abcd ^ d, w3);
 
-    B[3][3] = GF_W16_INLINE_DIV(LOG16, ALOG16, 1, w3);
+    B[3][3] = GF_W16_INLINE_DIV(LOG16, DALOG16, 1, w3);
 }
 
 // Inversion of Vandermond matrix of size 4x4
@@ -373,7 +373,7 @@ double ext_recover_4_nodes_core(unsigned int* pNodesToRecoverIdx, Node* pNodes, 
             ++sameLambdaResCounter[AIdx][lambdaId];
         }
 
-        vand4_inv(invMatr, recNodesCoeff[i][0], recNodesCoeff[i][2], recNodesCoeff[i][3], recNodesCoeff[i][4]);
+        ext_vand4_inv(invMatr, recNodesCoeff[i][0], recNodesCoeff[i][2], recNodesCoeff[i][3], recNodesCoeff[i][4]);
 
         recData[0] = GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[0][0], currCol[0]);
         recData[0] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[0][1], currCol[1]);
@@ -1134,6 +1134,7 @@ int main()
 
     LOG16 = gf_w16_get_log_table(&GF);
     ALOG16 = gf_w16_get_mult_alog_table(&GF);
+    DALOG16 = gf_w16_get_div_alog_table(&GF);
 
 
     /*fe_type* currData = (fe_type*)(&src[0]);
