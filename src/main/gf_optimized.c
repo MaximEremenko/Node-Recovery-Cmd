@@ -85,7 +85,7 @@ void GF_multiply_region_w32(gf_t* gf, uint8_t* src, uint8_t* dest, gf_val_32_t v
 	uint8_t high[4][16];
 	gf_region_data rd;
 
-	__m128i  mask, ta, tb, ti, tpl, tph, tlow[4], thigh[4], tta, ttb, shuffler, unshuffler, lmask;
+	__m128i  mask, ta, tb, ti, tpl, tph, tta, ttb, shuffler, unshuffler, lmask;
 
 	if (val == 0) { gf_multby_zero(dest, bytes, xor); return; }
 	if (val == 1) { gf_multby_one(src, dest, bytes, xor); return; }
@@ -123,12 +123,12 @@ void GF_multiply_region_w32(gf_t* gf, uint8_t* src, uint8_t* dest, gf_val_32_t v
 		tlow[i] = _mm_loadu_si128((__m128i*)low[i]);
 		thigh[i] = _mm_loadu_si128((__m128i*)high[i]);
 	}
-	*/
 
 	for (i = 0; i < 4; i++) {
 		tlow[i] = _mm_loadu_si128(&lowTable[val][i]);
 		thigh[i] = _mm_loadu_si128(&highTable[val][i]);
 	}
+	*/
 
 
 	s64 = (uint64_t*)rd.s_start;
@@ -153,22 +153,22 @@ void GF_multiply_region_w32(gf_t* gf, uint8_t* src, uint8_t* dest, gf_val_32_t v
 			ta = _mm_packus_epi16(ttb, tta);
 
 			ti = _mm_and_si128(mask, tb);
-			tph = _mm_shuffle_epi8(thigh[0], ti);
-			tpl = _mm_shuffle_epi8(tlow[0], ti);
+			tph = _mm_shuffle_epi8(_mm_loadu_si128(&highTable[val][0]), ti);
+			tpl = _mm_shuffle_epi8(_mm_loadu_si128(&lowTable[val][0]), ti);
 
 			tb = _mm_srli_epi16(tb, 4);
 			ti = _mm_and_si128(mask, tb);
-			tpl = _mm_xor_si128(_mm_shuffle_epi8(tlow[1], ti), tpl);
-			tph = _mm_xor_si128(_mm_shuffle_epi8(thigh[1], ti), tph);
+			tpl = _mm_xor_si128(_mm_shuffle_epi8(_mm_loadu_si128(&lowTable[val][1]), ti), tpl);
+			tph = _mm_xor_si128(_mm_shuffle_epi8(_mm_loadu_si128(&highTable[val][1]), ti), tph);
 
 			ti = _mm_and_si128(mask, ta);
-			tpl = _mm_xor_si128(_mm_shuffle_epi8(tlow[2], ti), tpl);
-			tph = _mm_xor_si128(_mm_shuffle_epi8(thigh[2], ti), tph);
+			tpl = _mm_xor_si128(_mm_shuffle_epi8(_mm_loadu_si128(&lowTable[val][2]), ti), tpl);
+			tph = _mm_xor_si128(_mm_shuffle_epi8(_mm_loadu_si128(&highTable[val][2]), ti), tph);
 
 			ta = _mm_srli_epi16(ta, 4);
 			ti = _mm_and_si128(mask, ta);
-			tpl = _mm_xor_si128(_mm_shuffle_epi8(tlow[3], ti), tpl);
-			tph = _mm_xor_si128(_mm_shuffle_epi8(thigh[3], ti), tph);
+			tpl = _mm_xor_si128(_mm_shuffle_epi8(_mm_loadu_si128(&lowTable[val][3]), ti), tpl);
+			tph = _mm_xor_si128(_mm_shuffle_epi8(_mm_loadu_si128(&highTable[val][3]), ti), tph);
 
 			ta = _mm_unpackhi_epi8(tpl, tph);
 			tb = _mm_unpacklo_epi8(tpl, tph);
@@ -200,22 +200,22 @@ void GF_multiply_region_w32(gf_t* gf, uint8_t* src, uint8_t* dest, gf_val_32_t v
 			ta = _mm_packus_epi16(ttb, tta);
 
 			ti = _mm_and_si128(mask, tb);
-			tph = _mm_shuffle_epi8(thigh[0], ti);
-			tpl = _mm_shuffle_epi8(tlow[0], ti);
+			tph = _mm_shuffle_epi8(_mm_loadu_si128(&highTable[val][0]), ti);
+			tpl = _mm_shuffle_epi8(_mm_loadu_si128(&lowTable[val][0]), ti);
 
 			tb = _mm_srli_epi16(tb, 4);
 			ti = _mm_and_si128(mask, tb);
-			tpl = _mm_xor_si128(_mm_shuffle_epi8(tlow[1], ti), tpl);
-			tph = _mm_xor_si128(_mm_shuffle_epi8(thigh[1], ti), tph);
+			tpl = _mm_xor_si128(_mm_shuffle_epi8(_mm_loadu_si128(&lowTable[val][1]), ti), tpl);
+			tph = _mm_xor_si128(_mm_shuffle_epi8(_mm_loadu_si128(&highTable[val][1]), ti), tph);
 
 			ti = _mm_and_si128(mask, ta);
-			tpl = _mm_xor_si128(_mm_shuffle_epi8(tlow[2], ti), tpl);
-			tph = _mm_xor_si128(_mm_shuffle_epi8(thigh[2], ti), tph);
+			tpl = _mm_xor_si128(_mm_shuffle_epi8(_mm_loadu_si128(&lowTable[val][2]), ti), tpl);
+			tph = _mm_xor_si128(_mm_shuffle_epi8(_mm_loadu_si128(&highTable[val][2]), ti), tph);
 
 			ta = _mm_srli_epi16(ta, 4);
 			ti = _mm_and_si128(mask, ta);
-			tpl = _mm_xor_si128(_mm_shuffle_epi8(tlow[3], ti), tpl);
-			tph = _mm_xor_si128(_mm_shuffle_epi8(thigh[3], ti), tph);
+			tpl = _mm_xor_si128(_mm_shuffle_epi8(_mm_loadu_si128(&lowTable[val][3]), ti), tpl);
+			tph = _mm_xor_si128(_mm_shuffle_epi8(_mm_loadu_si128(&highTable[val][3]), ti), tph);
 
 			ta = _mm_unpackhi_epi8(tpl, tph);
 			tb = _mm_unpacklo_epi8(tpl, tph);
