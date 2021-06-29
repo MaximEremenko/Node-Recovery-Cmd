@@ -530,6 +530,9 @@ double ext_recover_4_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes, doubl
         }
     }
 
+    for(int x=0; x< 10; ++x)
+        ext_recover_4_nodes_core(pNodesToRecoverIdx, pNodes, lambdasIdx, pCurrData, inneTime1, innerTime2);
+
     return ext_recover_4_nodes_core(pNodesToRecoverIdx, pNodes, lambdasIdx, pCurrData, inneTime1, innerTime2);
 }
 
