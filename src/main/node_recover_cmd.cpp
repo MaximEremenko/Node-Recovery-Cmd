@@ -319,6 +319,7 @@ uint8_t* resDst[2400];
 gf_val_32_t currCoeff[2400];
 
 
+
 double ext_recover_4_nodes_core(unsigned int* pNodesToRecoverIdx, Node* pNodes, int lambdasIdx[5], fe_type* pCurrData, double* inneTime1, double* innerTime2)
 {
     uint8_t dstTest[512];
@@ -335,7 +336,7 @@ double ext_recover_4_nodes_core(unsigned int* pNodesToRecoverIdx, Node* pNodes, 
 
     for (int i = 0; i < 2400; ++i)
     {
-    GF_multiply_region_w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
+        GF_multiply_region_w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
 //        GF.multiply_region.w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
 
        
@@ -1144,6 +1145,8 @@ int main()
         printf("GF initialization FAILED!\n");
         exit(1);
     }
+   
+    calcHiLoTables(&GF);
 
     LOG16 = gf_w16_get_log_table(&GF);
     ALOG16 = gf_w16_get_mult_alog_table(&GF);
