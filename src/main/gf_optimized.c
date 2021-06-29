@@ -85,7 +85,7 @@ void GF_multiply_region_w32(gf_t* gf, uint8_t* src, uint8_t* dest, gf_val_32_t v
 	uint8_t high[4][16];
 	gf_region_data rd;
 
-	__m128i  mask, ta, tb, ti, tpl, tph, tta, ttb, tlow, thigh, shuffler, unshuffler, lmask;
+	__m128i  mask, ta, tb, ti, tpl, tph, tta, ttb, shuffler, unshuffler, lmask;
 
 	if (val == 0) { gf_multby_zero(dest, bytes, xor); return; }
 	if (val == 1) { gf_multby_one(src, dest, bytes, xor); return; }
@@ -99,38 +99,6 @@ void GF_multiply_region_w32(gf_t* gf, uint8_t* src, uint8_t* dest, gf_val_32_t v
 	// Нам гарантировано, что val != 0 , так как это случай обрабатывается отдельно
 	int logVal = (int)ltd->log_tbl[val];
 
-	// Пропускаем 0 итерацию цикла ниже, так как в её результате гарантировано получается результат 0 
-	/*low[0][0] = 0;
-	low[1][0] = 0;
-	low[2][0] = 0;
-	low[3][0] = 0;
-
-	high[0][0] = 0;
-	high[1][0] = 0;
-	high[2][0] = 0;
-	high[3][0] = 0;
-	
-	for (j = 1; j < 16; j++) {
-		for (i = 0; i < 4; i++) {
-			c = (j << (i * 4));
-			prod = GF_w16_log_multiply_by_log(ltd, c, logVal);
-			low[i][j] = (prod & 0xff);
-			high[i][j] = (prod >> 8);
-		}
-	}
-
-	for (i = 0; i < 4; i++) {
-		tlow[i] = _mm_loadu_si128((__m128i*)low[i]);
-		thigh[i] = _mm_loadu_si128((__m128i*)high[i]);
-	}
-
-	for (i = 0; i < 4; i++) {
-		tlow[i] = _mm_loadu_si128(&lowTable[val][i]);
-		thigh[i] = _mm_loadu_si128(&highTable[val][i]);
-	}
-	*/
-
-
 	s64 = (uint64_t*)rd.s_start;
 	d64 = (uint64_t*)rd.d_start;
 	top64 = (uint64_t*)rd.d_top;
@@ -139,6 +107,16 @@ void GF_multiply_region_w32(gf_t* gf, uint8_t* src, uint8_t* dest, gf_val_32_t v
 	lmask = _mm_set1_epi16(0xff);
 
 	if (xor) {
+
+		const __m128i thigh_0 = _mm_loadu_si128(&highTable[val][0]);
+		const __m128i thigh_1 = _mm_loadu_si128(&highTable[val][1]);
+		const __m128i thigh_2 = _mm_loadu_si128(&highTable[val][2]);
+		const __m128i thigh_3 = _mm_loadu_si128(&highTable[val][3]);
+		const __m128i tlow_0 = _mm_loadu_si128(&lowTable[val][0]);
+		const __m128i tlow_1 = _mm_loadu_si128(&lowTable[val][1]);
+		const __m128i tlow_2 = _mm_loadu_si128(&lowTable[val][2]);
+		const __m128i tlow_3 = _mm_loadu_si128(&lowTable[val][3]);
+
 		while (d64 != top64) {
 
 			ta = _mm_load_si128((__m128i*) s64);
@@ -152,36 +130,23 @@ void GF_multiply_region_w32(gf_t* gf, uint8_t* src, uint8_t* dest, gf_val_32_t v
 			tb = _mm_packus_epi16(tpl, tph);
 			ta = _mm_packus_epi16(ttb, tta);
 
-			thigh = _mm_loadu_si128(&highTable[val][0]);
-			tlow = _mm_loadu_si128(&lowTable[val][0]);
-
 			ti = _mm_and_si128(mask, tb);
-			tph = _mm_shuffle_epi8(thigh, ti);
-			tpl = _mm_shuffle_epi8(tlow, ti);
-
-			thigh = _mm_loadu_si128(&highTable[val][1]);
-			tlow = _mm_loadu_si128(&lowTable[val][1]);
+			tph = _mm_shuffle_epi8(thigh_0, ti);
+			tpl = _mm_shuffle_epi8(tlow_0, ti);
 
 			tb = _mm_srli_epi16(tb, 4);
 			ti = _mm_and_si128(mask, tb);
-			tpl = _mm_xor_si128(_mm_shuffle_epi8(tlow, ti), tpl);
-			tph = _mm_xor_si128(_mm_shuffle_epi8(thigh, ti), tph);
-
-
-			thigh = _mm_loadu_si128(&highTable[val][2]);
-			tlow = _mm_loadu_si128(&lowTable[val][2]);
+			tpl = _mm_xor_si128(_mm_shuffle_epi8(tlow_1, ti), tpl);
+			tph = _mm_xor_si128(_mm_shuffle_epi8(thigh_1, ti), tph);
 
 			ti = _mm_and_si128(mask, ta);
-			tpl = _mm_xor_si128(_mm_shuffle_epi8(tlow, ti), tpl);
-			tph = _mm_xor_si128(_mm_shuffle_epi8(thigh, ti), tph);
-
-			thigh = _mm_loadu_si128(&highTable[val][3]);
-			tlow = _mm_loadu_si128(&lowTable[val][3]);
+			tpl = _mm_xor_si128(_mm_shuffle_epi8(tlow_2, ti), tpl);
+			tph = _mm_xor_si128(_mm_shuffle_epi8(thigh_2, ti), tph);
 
 			ta = _mm_srli_epi16(ta, 4);
 			ti = _mm_and_si128(mask, ta);
-			tpl = _mm_xor_si128(_mm_shuffle_epi8(tlow, ti), tpl);
-			tph = _mm_xor_si128(_mm_shuffle_epi8(thigh, ti), tph);
+			tpl = _mm_xor_si128(_mm_shuffle_epi8(tlow_3, ti), tpl);
+			tph = _mm_xor_si128(_mm_shuffle_epi8(thigh_3, ti), tph);
 
 			ta = _mm_unpackhi_epi8(tpl, tph);
 			tb = _mm_unpacklo_epi8(tpl, tph);
