@@ -85,7 +85,7 @@ void GF_multiply_region_w32(gf_t* gf, uint8_t* src, uint8_t* dest, gf_val_32_t v
 	uint8_t high[4][16];
 	gf_region_data rd;
 
-	__m128i  mask, ta, tb, ti, tpl, tph, tta, ttb, shuffler, unshuffler, lmask;
+	__m128i  mask, ta, tb, ti, tpl, tph, tta, ttb, tlow, thigh, shuffler, unshuffler, lmask;
 
 	if (val == 0) { gf_multby_zero(dest, bytes, xor); return; }
 	if (val == 1) { gf_multby_one(src, dest, bytes, xor); return; }
@@ -152,23 +152,36 @@ void GF_multiply_region_w32(gf_t* gf, uint8_t* src, uint8_t* dest, gf_val_32_t v
 			tb = _mm_packus_epi16(tpl, tph);
 			ta = _mm_packus_epi16(ttb, tta);
 
+			thigh = _mm_loadu_si128(&highTable[val][0]);
+			tlow = _mm_loadu_si128(&lowTable[val][0]);
+
 			ti = _mm_and_si128(mask, tb);
-			tph = _mm_shuffle_epi8(_mm_loadu_si128(&highTable[val][0]), ti);
-			tpl = _mm_shuffle_epi8(_mm_loadu_si128(&lowTable[val][0]), ti);
+			tph = _mm_shuffle_epi8(thigh, ti);
+			tpl = _mm_shuffle_epi8(tlow, ti);
+
+			thigh = _mm_loadu_si128(&highTable[val][1]);
+			tlow = _mm_loadu_si128(&lowTable[val][1]);
 
 			tb = _mm_srli_epi16(tb, 4);
 			ti = _mm_and_si128(mask, tb);
-			tpl = _mm_xor_si128(_mm_shuffle_epi8(_mm_loadu_si128(&lowTable[val][1]), ti), tpl);
-			tph = _mm_xor_si128(_mm_shuffle_epi8(_mm_loadu_si128(&highTable[val][1]), ti), tph);
+			tpl = _mm_xor_si128(_mm_shuffle_epi8(tlow, ti), tpl);
+			tph = _mm_xor_si128(_mm_shuffle_epi8(thigh, ti), tph);
+
+
+			thigh = _mm_loadu_si128(&highTable[val][2]);
+			tlow = _mm_loadu_si128(&lowTable[val][2]);
 
 			ti = _mm_and_si128(mask, ta);
-			tpl = _mm_xor_si128(_mm_shuffle_epi8(_mm_loadu_si128(&lowTable[val][2]), ti), tpl);
-			tph = _mm_xor_si128(_mm_shuffle_epi8(_mm_loadu_si128(&highTable[val][2]), ti), tph);
+			tpl = _mm_xor_si128(_mm_shuffle_epi8(tlow, ti), tpl);
+			tph = _mm_xor_si128(_mm_shuffle_epi8(thigh, ti), tph);
+
+			thigh = _mm_loadu_si128(&highTable[val][3]);
+			tlow = _mm_loadu_si128(&lowTable[val][3]);
 
 			ta = _mm_srli_epi16(ta, 4);
 			ti = _mm_and_si128(mask, ta);
-			tpl = _mm_xor_si128(_mm_shuffle_epi8(_mm_loadu_si128(&lowTable[val][3]), ti), tpl);
-			tph = _mm_xor_si128(_mm_shuffle_epi8(_mm_loadu_si128(&highTable[val][3]), ti), tph);
+			tpl = _mm_xor_si128(_mm_shuffle_epi8(tlow, ti), tpl);
+			tph = _mm_xor_si128(_mm_shuffle_epi8(thigh, ti), tph);
 
 			ta = _mm_unpackhi_epi8(tpl, tph);
 			tb = _mm_unpacklo_epi8(tpl, tph);

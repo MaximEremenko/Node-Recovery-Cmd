@@ -336,11 +336,11 @@ double ext_recover_4_nodes_core(unsigned int* pNodesToRecoverIdx, Node* pNodes, 
 
     for (int i = 0; i < 2400; ++i)
     {
-        //GF_multiply_region_w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
+        GF_multiply_region_w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
 //        GF.multiply_region.w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
 
        
-        memcpy(dstTest, resDst[i], 512);
+/*        memcpy(dstTest, resDst[i], 512);
         GF.multiply_region.w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
         GF_multiply_region_w32(&GF, dataSrc[i], dstTest, currCoeff[i], 512, 1);
         if (memcmp(resDst[i], dstTest, 512) != 0)
@@ -348,7 +348,7 @@ double ext_recover_4_nodes_core(unsigned int* pNodesToRecoverIdx, Node* pNodes, 
             printf("test failed\n");
             exit(0);
         }
-      
+  */    
     }
 
     auto  innerTime1End = chrono::high_resolution_clock::now();
@@ -529,6 +529,9 @@ double ext_recover_4_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes, doubl
             }
         }
     }
+
+    for(int x=0; x< 10; ++x)
+        ext_recover_4_nodes_core(pNodesToRecoverIdx, pNodes, lambdasIdx, pCurrData, inneTime1, innerTime2);
 
     return ext_recover_4_nodes_core(pNodesToRecoverIdx, pNodes, lambdasIdx, pCurrData, inneTime1, innerTime2);
 }
