@@ -9,9 +9,9 @@
 #include <list>
 
 #ifdef _WIN32
-  #include "sys/getopt.h"
+#include "sys/getopt.h"
 #else
-  #include <getopt.h>
+#include <getopt.h>
 #endif
 
 #include <stdint.h>
@@ -83,7 +83,7 @@ void ext_vand4_inv(fe_type B[4][4], fe_type a, fe_type b, fe_type c, fe_type d)
 
     fe_type w0_a = GF_W16_INLINE_MULT(LOG16, ALOG16, w0, a);
 
-    fe_type w1 = GF_W16_INLINE_MULT(LOG16, ALOG16, ab, bc); 
+    fe_type w1 = GF_W16_INLINE_MULT(LOG16, ALOG16, ab, bc);
     w1 = GF_W16_INLINE_MULT(LOG16, ALOG16, w1, bd);
 
     fe_type w1_b = GF_W16_INLINE_MULT(LOG16, ALOG16, w1, b);
@@ -93,17 +93,17 @@ void ext_vand4_inv(fe_type B[4][4], fe_type a, fe_type b, fe_type c, fe_type d)
 
     fe_type w2_c = GF_W16_INLINE_MULT(LOG16, ALOG16, w2, c);
 
-    fe_type w3 = GF_W16_INLINE_MULT(LOG16, ALOG16, ad, bd); 
+    fe_type w3 = GF_W16_INLINE_MULT(LOG16, ALOG16, ad, bd);
     w3 = GF_W16_INLINE_MULT(LOG16, ALOG16, w3, cd);
 
     fe_type w3_d = GF_W16_INLINE_MULT(LOG16, ALOG16, w3, d);
 
     B[0][0] = GF_W16_INLINE_DIV(LOG16, DALOG16, a_b_c_d, w0_a);
-    
-    B[0][1] = GF_W16_INLINE_MULT(LOG16, ALOG16, bd, cd)^d_d;
+
+    B[0][1] = GF_W16_INLINE_MULT(LOG16, ALOG16, bd, cd) ^ d_d;
     B[0][1] = GF_W16_INLINE_DIV(LOG16, DALOG16, B[0][1], w0);
-    
-    B[0][2] = GF_W16_INLINE_DIV(LOG16, DALOG16, abcd^a, w0);
+
+    B[0][2] = GF_W16_INLINE_DIV(LOG16, DALOG16, abcd ^ a, w0);
 
     B[0][3] = GF_W16_INLINE_DIV(LOG16, DALOG16, 1, w0);
 
@@ -127,7 +127,7 @@ void ext_vand4_inv(fe_type B[4][4], fe_type a, fe_type b, fe_type c, fe_type d)
 
     B[3][0] = GF_W16_INLINE_DIV(LOG16, DALOG16, a_b_c_d, w3_d);
 
-    B[3][1] = GF_W16_INLINE_MULT(LOG16, ALOG16, ac, bc) ^ d_d;
+    B[3][1] = GF_W16_INLINE_MULT(LOG16, ALOG16, ac, bc) ^ c_c;
     B[3][1] = GF_W16_INLINE_DIV(LOG16, DALOG16, B[3][1], w3);
 
     B[3][2] = GF_W16_INLINE_DIV(LOG16, DALOG16, abcd ^ d, w3);
@@ -337,18 +337,18 @@ double ext_recover_4_nodes_core(unsigned int* pNodesToRecoverIdx, Node* pNodes, 
     for (int i = 0; i < 2400; ++i)
     {
         GF_multiply_region_w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
-//        GF.multiply_region.w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
+        //        GF.multiply_region.w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
 
-       
-/*        memcpy(dstTest, resDst[i], 512);
-        GF.multiply_region.w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
-        GF_multiply_region_w32(&GF, dataSrc[i], dstTest, currCoeff[i], 512, 1);
-        if (memcmp(resDst[i], dstTest, 512) != 0)
-        {
-            printf("test failed\n");
-            exit(0);
-        }
-  */    
+
+        /*        memcpy(dstTest, resDst[i], 512);
+                GF.multiply_region.w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
+                GF_multiply_region_w32(&GF, dataSrc[i], dstTest, currCoeff[i], 512, 1);
+                if (memcmp(resDst[i], dstTest, 512) != 0)
+                {
+                    printf("test failed\n");
+                    exit(0);
+                }
+          */
     }
 
     auto  innerTime1End = chrono::high_resolution_clock::now();
@@ -387,7 +387,7 @@ double ext_recover_4_nodes_core(unsigned int* pNodesToRecoverIdx, Node* pNodes, 
             ++sameLambdaResCounter[AIdx][lambdaId];
         }
 
-        ext_vand4_inv(invMatr, recNodesCoeff[i][0], recNodesCoeff[i][2], recNodesCoeff[i][3], recNodesCoeff[i][4]);
+        ext_vand4_inv(invMatr, recNodesCoeff[i][0], recNodesCoeff[i][1], recNodesCoeff[i][2], recNodesCoeff[i][3]);
 
         recData[0] = GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[0][0], currCol[0]);
         recData[0] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[0][1], currCol[1]);
@@ -434,7 +434,7 @@ double ext_recover_4_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes, doubl
     int lambdasIdx[5] = { 0, 0, 0, 0, 0 };
     int i = 0, j = 0, k = 0, v = 0;
     unsigned int AIdx = 0, lambdaId = 0, nodeId = 0;
-    fe_type *pCurrData = 0, *pCurrRes = 0;
+    fe_type* pCurrData = 0, * pCurrRes = 0;
 
     for (i = 0; i < 4; ++i)
         for (j = 0; j < 154; ++j)
@@ -530,7 +530,7 @@ double ext_recover_4_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes, doubl
         }
     }
 
-    for(int x=0; x< 10; ++x)
+    for (int x = 0; x < 10; ++x)
         ext_recover_4_nodes_core(pNodesToRecoverIdx, pNodes, lambdasIdx, pCurrData, inneTime1, innerTime2);
 
     return ext_recover_4_nodes_core(pNodesToRecoverIdx, pNodes, lambdasIdx, pCurrData, inneTime1, innerTime2);
@@ -611,7 +611,7 @@ double recover_4_nodes_core(unsigned int* pNodesToRecoverIdx, unsigned int AData
 // 4 nodes recovery procedure
 double recover_4_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
 {
-    int lambdasIdx[5] = {0, 0, 0, 0, 0};
+    int lambdasIdx[5] = { 0, 0, 0, 0, 0 };
     unsigned int i = 0, j = 0, k = 0;
     int AIdx, currNodeToRec = 0, currLambdaIdx = 0;
 
@@ -696,8 +696,8 @@ double recover_4_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
         }
     }
 
-   // double start_time = 0;
-    //timer_start(&start_time);
+    // double start_time = 0;
+     //timer_start(&start_time);
 
     return recover_4_nodes_core(pNodesToRecoverIdx, ADataNodesNum, pNodes);
 }
@@ -946,14 +946,14 @@ double recover_1_node(unsigned int* pNodesToRecoverIdx, Node* pNodes)
     unsigned int nodeToRecAIdx = AIdxArray[nodeToRecIdx];
 
     unsigned int subBlockIdx = 0, currNodeIdx = 0, currAIdx = 0, tempAIdx = 0, i = 0, j = 0;
-    
+
     FieldElement invMatr[4][4];
     FieldElement nodeToRecSigma = FieldElement(sigmas[nodeToRecIdx]);
 
     vand4_inv(invMatr, nodeToRecSigma * lambdas[nodeToRecAIdx][0],
-                       nodeToRecSigma * lambdas[nodeToRecAIdx][1],
-                       nodeToRecSigma * lambdas[nodeToRecAIdx][2],
-                       nodeToRecSigma * lambdas[nodeToRecAIdx][3]);
+        nodeToRecSigma * lambdas[nodeToRecAIdx][1],
+        nodeToRecSigma * lambdas[nodeToRecAIdx][2],
+        nodeToRecSigma * lambdas[nodeToRecAIdx][3]);
 
     FieldElement diffAPartSum[4] = { ZERO_ELEMENT, ZERO_ELEMENT, ZERO_ELEMENT, ZERO_ELEMENT };
     FieldElement sameAPartSum[4] = { ZERO_ELEMENT, ZERO_ELEMENT, ZERO_ELEMENT, ZERO_ELEMENT };
@@ -962,14 +962,14 @@ double recover_1_node(unsigned int* pNodesToRecoverIdx, Node* pNodes)
     unsigned int diffANodeNum[4] = { 0, 0, 0, 0 };
     unsigned int sameANodeNum = 0;
 
-    unsigned int posArray[256][4] = {0};
+    unsigned int posArray[256][4] = { 0 };
 
     FieldElement recData[4];
 
     for (subBlockIdx = 0; subBlockIdx < 256; ++subBlockIdx)
     {
         curr_pos_get(currPos, currLambdasIdx, nodeToRecAIdx, subBlockIdx);
-        
+
         posArray[subBlockIdx][0] = currPos[0];
         posArray[subBlockIdx][1] = currPos[1];
         posArray[subBlockIdx][2] = currPos[2];
@@ -980,7 +980,7 @@ double recover_1_node(unsigned int* pNodesToRecoverIdx, Node* pNodes)
         diffANodeNum[1] = 0;
         diffANodeNum[2] = 0;
         diffANodeNum[3] = 0;
-        
+
         for (currNodeIdx = 0; currNodeIdx < 154; ++currNodeIdx)
         {
             if (currNodeIdx != nodeToRecIdx)
@@ -1002,7 +1002,7 @@ double recover_1_node(unsigned int* pNodesToRecoverIdx, Node* pNodes)
                 }
             }
         }
-        
+
         for (currAIdx = 0; currAIdx < 5; ++currAIdx)
         {
             if (currAIdx != nodeToRecAIdx)
@@ -1148,7 +1148,7 @@ int main()
         printf("GF initialization FAILED!\n");
         exit(1);
     }
-   
+
     calcHiLoTables(&GF);
 
     LOG16 = gf_w16_get_log_table(&GF);
@@ -1201,7 +1201,8 @@ int main()
     }
 
     unsigned int pNodesToRecoverIdx[4] = { 150, 151, 152, 153 };
-    recover_4_nodes(pNodesToRecoverIdx, pNodes);
+    //recover_4_nodes(pNodesToRecoverIdx, pNodes);
+    ext_recover_4_nodes(pNodesToRecoverIdx, pNodes, &inner_time1[0], &inner_time2[0]);
     printf("Encoding: Done!\n");
 
     printf("Code word check: ");
@@ -1272,7 +1273,7 @@ int main()
 
     printf("4 nodes ext recovery check: ");
     double time1, time2;
-    ext_recover_4_nodes(pNodesToRecoverIdx, pNodes, &time1, & time2);
+    ext_recover_4_nodes(pNodesToRecoverIdx, pNodes, &time1, &time2);
 
     failFlag = 0;
     for (int i = 0; i < 4; ++i)
