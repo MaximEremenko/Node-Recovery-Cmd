@@ -182,49 +182,51 @@ void vand4_inv(FieldElement B[4][4], FieldElement a, FieldElement b, FieldElemen
 }
 
 // Inversion of Vandermond matrix of size 4x4
-void vand4_inv(fe_type B[4][4], FieldElement a, FieldElement b, FieldElement c, FieldElement d)
+void vand4_inv2(fe_type B[4][4], NonZeroFieldElement a, NonZeroFieldElement b, NonZeroFieldElement c, NonZeroFieldElement d)
 {
-    FieldElement ab = a + b;
-    FieldElement ac = a + c;
-    FieldElement ad = a + d;
-    FieldElement bc = b + c;
-    FieldElement bd = b + d;
-    FieldElement cd = c + d;
-    FieldElement abcd = ab + cd;
+    LogFieldElement abLog = NonZeroFieldElement(a + b).toLog();
+    LogFieldElement acLog = NonZeroFieldElement(a + c).toLog();
+    LogFieldElement adLog = NonZeroFieldElement(a + d).toLog();
+    LogFieldElement bcLog = NonZeroFieldElement(b + c).toLog();
+    LogFieldElement bdLog = NonZeroFieldElement(b + d).toLog();
+    LogFieldElement cdLog = NonZeroFieldElement(c + d).toLog();
+    FieldElement abcd = FieldElement((a + b).getElement()) + FieldElement((c + d).getElement());
 
-    FieldElement a_b_c_d = a * b * c * d;
-    FieldElement c_c = c * c;
-    FieldElement d_d = d * d;
+    LogFieldElement cLog = c.toLog();
+    LogFieldElement dLog = d.toLog();
+    LogFieldElement a_b_c_d = a.toLog() * b.toLog() * cLog * dLog;
+    LogFieldElement c_c = cLog * cLog;
+    LogFieldElement d_d = dLog * dLog;
 
-    FieldElement inva = ~a;
-    FieldElement invb = ~b;
-    FieldElement invc = ~c;
-    FieldElement invd = ~d;
+    LogFieldElement inva = (~a).toLog();
+    LogFieldElement invb = (~b).toLog();
+    LogFieldElement invc = (~c).toLog();
+    LogFieldElement invd = (~d).toLog();
 
-    FieldElement w0 = ~(ab * ac * ad);
-    FieldElement w1 = ~(ab * bc * bd);
-    FieldElement w2 = ~(ac * bc * cd);
-    FieldElement w3 = ~(ad * bd * cd);
+    LogFieldElement w0 = (~(abLog * acLog * adLog).toNormal()).toLog();
+    LogFieldElement w1 = (~(abLog * bcLog * bdLog).toNormal()).toLog();
+    LogFieldElement w2 = (~(acLog * bcLog * cdLog).toNormal()).toLog();
+    LogFieldElement w3 = (~(adLog * bdLog * cdLog).toNormal()).toLog();
 
-    B[0][0] = (w0 * a_b_c_d * inva).getElement();
-    B[0][1] = (w0 * (bd * cd + d_d)).getElement();
+    B[0][0] = (w0 * a_b_c_d * inva).toNormal().getElement();
+    B[0][1] = (w0 * ((bdLog * cdLog).toNormal() + d_d.toNormal())).getElement();
     B[0][2] = (w0 * (abcd + a)).getElement();
-    B[0][3] = w0.getElement();
+    B[0][3] = w0.toNormal().getElement();
 
-    B[1][0] = (w1 * a_b_c_d * invb).getElement();
-    B[1][1] = (w1 * (ad * cd + d_d)).getElement();
+    B[1][0] = (w1 * a_b_c_d * invb).toNormal().getElement();
+    B[1][1] = (w1 * ((adLog * cdLog).toNormal() + d_d.toNormal())).getElement();
     B[1][2] = (w1 * (abcd + b)).getElement();
-    B[1][3] = w1.getElement();
+    B[1][3] = w1.toNormal().getElement();
 
-    B[2][0] = (w2 * a_b_c_d * invc).getElement();
-    B[2][1] = (w2 * (ad * bd + d_d)).getElement();
+    B[2][0] = ((w2 * a_b_c_d) * invc).toNormal().getElement();
+    B[2][1] = (w2 * ((adLog * bdLog).toNormal() + d_d.toNormal())).getElement();
     B[2][2] = (w2 * (abcd + c)).getElement();
-    B[2][3] = w2.getElement();
+    B[2][3] = w2.toNormal().getElement();
 
-    B[3][0] = (w3 * a_b_c_d * invd).getElement();
-    B[3][1] = (w3 * (ac * bc + c_c)).getElement();
+    B[3][0] = ((w3 * a_b_c_d) * invd).toNormal().getElement();
+    B[3][1] = (w3 * ((acLog * bcLog).toNormal() + c_c.toNormal())).getElement();
     B[3][2] = (w3 * (abcd + d)).getElement();
-    B[3][3] = w3.getElement();
+    B[3][3] = w3.toNormal().getElement();
 }
 
 
@@ -337,7 +339,7 @@ double ext_recover_4_nodes_core(unsigned int* pNodesToRecoverIdx, Node* pNodes, 
     for (int i = 0; i < 2400; ++i)
     {
         GF_multiply_region_w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
-        //        GF.multiply_region.w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
+//                GF.multiply_region.w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
 
 
         /*        memcpy(dstTest, resDst[i], 512);
@@ -387,7 +389,7 @@ double ext_recover_4_nodes_core(unsigned int* pNodesToRecoverIdx, Node* pNodes, 
             ++sameLambdaResCounter[AIdx][lambdaId];
         }
 
-        ext_vand4_inv(invMatr, recNodesCoeff[i][0], recNodesCoeff[i][1], recNodesCoeff[i][2], recNodesCoeff[i][3]);
+        vand4_inv2(invMatr, recNodesCoeff[i][0], recNodesCoeff[i][1], recNodesCoeff[i][2], recNodesCoeff[i][3]);
 
         recData[0] = GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[0][0], currCol[0]);
         recData[0] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[0][1], currCol[1]);
@@ -530,8 +532,8 @@ double ext_recover_4_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes, doubl
         }
     }
 
-    for (int x = 0; x < 10; ++x)
-        ext_recover_4_nodes_core(pNodesToRecoverIdx, pNodes, lambdasIdx, pCurrData, inneTime1, innerTime2);
+//    for (int x = 0; x < 10; ++x)
+        //ext_recover_4_nodes_core(pNodesToRecoverIdx, pNodes, lambdasIdx, pCurrData, inneTime1, innerTime2);
 
     return ext_recover_4_nodes_core(pNodesToRecoverIdx, pNodes, lambdasIdx, pCurrData, inneTime1, innerTime2);
 }
