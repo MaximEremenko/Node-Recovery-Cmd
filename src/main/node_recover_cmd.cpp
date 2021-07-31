@@ -181,6 +181,54 @@ void vand4_inv(FieldElement B[4][4], FieldElement a, FieldElement b, FieldElemen
     B[3][3] = w3;
 }
 
+void vand4_inv_old(fe_type B[4][4], NonZeroFieldElement a, NonZeroFieldElement b, NonZeroFieldElement c, NonZeroFieldElement d)
+{
+    LogFieldElement abLog = NonZeroFieldElement(a + b).toLog();
+    LogFieldElement acLog = NonZeroFieldElement(a + c).toLog();
+    LogFieldElement adLog = NonZeroFieldElement(a + d).toLog();
+    FieldElement bc = NonZeroFieldElement(b + c).toLog().toNormal().toFieldElement();
+    FieldElement bd = NonZeroFieldElement(b + d).toLog().toNormal().toFieldElement();
+    FieldElement cd = NonZeroFieldElement(c + d).toLog().toNormal().toFieldElement();
+    FieldElement abcd = FieldElement((a + b).getElement()) + FieldElement((c + d).getElement());
+
+    FieldElement a_b_c_d = a.toFieldElement() * b.toFieldElement() * c.toFieldElement() * d.toFieldElement();
+    FieldElement c_c = c.toFieldElement() * c.toFieldElement();
+    FieldElement d_d = d.toFieldElement() * d.toFieldElement();
+
+    FieldElement inva = ~a.toFieldElement();
+    FieldElement invb = ~b.toFieldElement();
+    FieldElement invc = ~c.toFieldElement();
+    FieldElement invd = ~d.toFieldElement();
+
+    FieldElement ad = adLog.toNormal().toFieldElement();
+
+    FieldElement w0 = ~((abLog * acLog).toNormal().toFieldElement() * ad);
+    FieldElement w1 = ~(abLog.toNormal().toFieldElement() * bc * bd);
+    FieldElement w2 = ~(acLog.toNormal().toFieldElement() * bc * cd);
+    FieldElement w3 = ~(ad * bd * cd);
+
+    B[0][0] = (w0 * a_b_c_d * inva).getElement();
+    B[0][1] = (w0 * (bd * cd + d_d)).getElement();
+    B[0][2] = (w0 * (abcd + a)).getElement();
+    B[0][3] = w0.getElement();
+
+    B[1][0] = (w1 * a_b_c_d * invb).getElement();
+    B[1][1] = (w1 * (ad * cd + d_d)).getElement();
+    B[1][2] = (w1 * (abcd + b)).getElement();
+    B[1][3] = w1.getElement();
+
+    B[2][0] = (w2 * a_b_c_d * invc).getElement();
+    B[2][1] = (w2 * (ad * bd + d_d)).getElement();
+    B[2][2] = (w2 * (abcd + c)).getElement();
+    B[2][3] = w2.getElement();
+
+    B[3][0] = (w3 * a_b_c_d * invd).getElement();
+    B[3][1] = (w3 * (acLog.toNormal().toFieldElement() * bc + c_c)).getElement();
+    B[3][2] = (w3 * (abcd + d)).getElement();
+    B[3][3] = w3.getElement();
+}
+
+
 // Inversion of Vandermond matrix of size 4x4
 void vand4_inv2(fe_type B[4][4], NonZeroFieldElement a, NonZeroFieldElement b, NonZeroFieldElement c, NonZeroFieldElement d)
 {
@@ -1156,6 +1204,54 @@ int main()
     LOG16 = gf_w16_get_log_table(&GF);
     ALOG16 = gf_w16_get_mult_alog_table(&GF);
     DALOG16 = gf_w16_get_div_alog_table(&GF);
+
+    for (int i = 0, e = 0; i <= 0x1FFFF && e < 10; ++i)
+    {
+        if (LOG16[ALOG16[i]] != LogFieldElement::correctLog(i))
+        {
+            printf("Logspace correction error: i = %x, ALOG[i] = %x, LOG[ALOG[i]] = %x != corrected(i) = %x\n",
+                i,
+                ALOG16[i],
+                LOG16[ALOG16[i]],
+                LogFieldElement::correctLog(i));
+            ++e;
+        }
+    }
+
+
+    FieldElement data = 0x000FF;
+    NonZeroFieldElement nzData = data.getElement();
+    fe_type val = 1;
+    data = val;
+    nzData = val;
+
+    int maxLog = 0;
+
+    for (; val < 0xFFFF; ++val)
+    {
+        data = val;
+        nzData = val;
+
+        maxLog = std::max(maxLog, (int)LOG16[val]);
+
+        if ((data * data * data).getElement() != (nzData.toLog() * nzData.toLog() * nzData.toLog()).toNormal().getElement())
+        {
+            printf("Cube error for 0x%X", val);
+            break;
+        }
+    }
+
+//    printf("maxLog = %x\n", maxLog);
+//    printf("val = %X\n", val);
+    
+    FieldElement sq = data * data * data;
+
+//    printf("  FE: %0X ^3  = %0X\n\n*************\n\n", data.getElement(), sq.getElement());
+    
+    FieldElement nzsq = (nzData.toLog() * nzData.toLog() * nzData.toLog()).toNormal().getElement();
+
+//    printf("nzFE: %0X ^3  = %0X\n", nzData.getElement(), nzsq.getElement());
+
 
 
     /*fe_type* currData = (fe_type*)(&src[0]);
