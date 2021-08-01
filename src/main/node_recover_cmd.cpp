@@ -1737,6 +1737,12 @@ int main()
 
 
 
+    for (int i = 0; i < 4; ++i)
+    {
+        pTestNodes[i] = pNodes[pNodesToRecoverIdx[i]];
+        for (int j = 0; j < 1024; ++j)
+            pNodes[pNodesToRecoverIdx[i]].setData(j, 0);
+    }
 
     printf("4 nodes recovery check: ");
     recover_4_nodes(pNodesToRecoverIdx, pNodes);
@@ -1757,6 +1763,13 @@ int main()
     for (int i = 0; i < 4; ++i)
         pTestNodes[i] = pNodes[pNodesToRecoverIdx[i]];
 
+    for (int i = 0; i < 3; ++i)
+    {
+        pTestNodes[i] = pNodes[pNodesToRecoverIdx[i]];
+        for (int j = 0; j < 1024; ++j)
+            pNodes[pNodesToRecoverIdx[i]].setData(j, 0);
+    }
+
 
     printf("3 nodes ext recovery check: ");
     ext_recover_3_nodes(pNodesToRecoverIdx, pNodes);
@@ -1774,6 +1787,14 @@ int main()
     else
         printf("PASS!\n");
 
+    for (int i = 0; i < 2; ++i)
+    {
+        pTestNodes[i] = pNodes[pNodesToRecoverIdx[i]];
+        for (int j = 0; j < 1024; ++j)
+            pNodes[pNodesToRecoverIdx[i]].setData(j, 0);
+    }
+
+
     printf("2 nodes ext recovery check: ");
     ext_recover_2_nodes(pNodesToRecoverIdx, pNodes);
     failFlag = 0;
@@ -1789,6 +1810,14 @@ int main()
         printf("FAILED!\n");
     else
         printf("PASS!\n");
+
+    for (int i = 0; i < 1; ++i)
+    {
+        pTestNodes[i] = pNodes[pNodesToRecoverIdx[i]];
+        for (int j = 0; j < 1024; ++j)
+            pNodes[pNodesToRecoverIdx[i]].setData(j, 0);
+    }
+
 
     printf("1 node recovery check: ");
     recover_1_node(pNodesToRecoverIdx, pNodes);
