@@ -481,7 +481,7 @@ double ext_recover_4_nodes_core(unsigned int* pNodesToRecoverIdx, Node* pNodes, 
             ++sameLambdaResCounter[AIdx][lambdaId];
         }
 
-        vand4_inv2(invMatr, recNodesCoeff[i][0], recNodesCoeff[i][1], recNodesCoeff[i][2], recNodesCoeff[i][3]);
+        ext_vand4_inv(invMatr, recNodesCoeff[i][0], recNodesCoeff[i][1], recNodesCoeff[i][2], recNodesCoeff[i][3]);
 
         recData[0] = GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[0][0], currCol[0]);
         recData[0] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[0][1], currCol[1]);
@@ -1860,7 +1860,7 @@ int main()
                 }
                 pNodes[i] = Node(FieldElement(sigmas[i]), testData);
             }
-            recover_4_nodes(pNodesToRecoverIdx, pNodes);
+            ext_recover_4_nodes(pNodesToRecoverIdx, pNodes, &(inner_time1[tests]), &(inner_time2[tests]));
 
             rndId = rand() % 154;
             for (unsigned int i = 0; i < 4; ++i)
@@ -1890,6 +1890,18 @@ int main()
         double whole_elapsed_time = 0, max_elapsed_time = 0, min_elapsed_time = 1000;
         double whole_inner_time1 = 0, whole_inner_time2 = 0;
 
+ /*       for (int k = 0; k < testsNum / 1000; ++k)
+        {
+            whole_elapsed_time = 0;
+            for (int i = 0; i < 1000; ++i)
+            {
+                whole_elapsed_time += elapsed_time[k*1000 + i];
+            }
+            printf("%g ", ((double)(nodesToRecoverNum) * 1024 * 16 * 1000) / (whole_elapsed_time * 1e6));
+        }
+        printf("\n");
+        whole_elapsed_time = 0; */
+
         for (int i = 0; i < testsNum; ++i)
         {
             whole_elapsed_time += elapsed_time[i];
@@ -1900,7 +1912,7 @@ int main()
             if (elapsed_time[i] > max_elapsed_time)
                 max_elapsed_time = elapsed_time[i];
         }
-        printf("Av. elapsed time: %f usec\n", (whole_elapsed_time * 1e6) / testsNum);
+//        printf("Av. elapsed time: %f usec\n", (whole_elapsed_time * 1e6) / testsNum);
 //        printf("  min. elapsed time: %f usec\n", min_elapsed_time * 1e6);
 //        printf("  max. elapsed time: %f usec\n", max_elapsed_time * 1e6);
 //        printf("Inner time 1: %f usec\n", (whole_inner_time1 * 1e6) / testsNum);

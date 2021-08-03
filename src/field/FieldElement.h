@@ -147,13 +147,13 @@ public:
     NonZeroFieldElement(fe_type iElement)
     {
         m_iElement = iElement;
-        assert_x(m_iElement);
+        //assert_x(m_iElement);
     }
 
     NonZeroFieldElement(const FieldElement& element)
     {
         m_iElement = element.m_iElement;
-        assert_x(m_iElement);
+        //assert_x(m_iElement);
     }
 
     NonZeroFieldElement(const  NonZeroFieldElement& element) = default;
@@ -175,14 +175,14 @@ public:
     inline const NonZeroFieldElement& operator= (const FieldElement& element)
     {
         m_iElement = element.m_iElement;
-        assert_x(m_iElement);
+        //assert_x(m_iElement);
         return *this;
     }
 
     inline const NonZeroFieldElement& operator= (const fe_type iElement)
     {
         m_iElement = iElement;
-        assert_x(m_iElement);
+        //assert_x(m_iElement);
         return *this;
     }
 
@@ -231,7 +231,7 @@ public:
             m_iLogElement,
             m_iLogElement & 0x1FFFF,
             ALOG16[m_iLogElement & 0x1FFFF]); */
-        return NonZeroFieldElement(ALOG16[m_iLogElement & 0x1FFFF]);
+        return NonZeroFieldElement(ALOG16[correctLog(m_iLogElement)]);
     }
 
     LogFieldElement operator * (const LogFieldElement& other)
@@ -241,7 +241,7 @@ public:
             other.m_iLogElement, 
             LogFieldElement(m_iLogElement + other.m_iLogElement).m_iLogElement);*/
            
-        return LogFieldElement(correctLog(m_iLogElement + other.m_iLogElement));
+        return LogFieldElement((m_iLogElement + other.m_iLogElement));
     }
 
     FieldElement operator * (const FieldElement& other)
@@ -256,8 +256,8 @@ public:
 
     static inline int correctLog(int x)
     {
-        return x >= 0xFFFF ? x - 0xFFFF : x;
-        //return (x & 0xFFFF) + (x >> 16);
+        //return x >= 0xFFFF ? x - 0xFFFF : x;
+        return (x & 0xFFFF) + (x >> 16);
     }
 
 private:
