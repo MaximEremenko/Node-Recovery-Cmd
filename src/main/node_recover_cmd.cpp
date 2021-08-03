@@ -898,7 +898,8 @@ double ext_recover_3_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
 
     for (i = 0; i < 1812; ++i)
     {
-        GF.multiply_region.w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
+        GF_multiply_region_w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
+//        GF.multiply_region.w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
     }
 
     for (i = 0; i < 1024; ++i)
@@ -1178,7 +1179,8 @@ double ext_recover_2_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
 
     for (i = 0; i < 1216; ++i)
     {
-        GF.multiply_region.w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
+        GF_multiply_region_w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
+        //GF.multiply_region.w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
     }
 
     for (i = 0; i < 1024; ++i)
@@ -1899,13 +1901,13 @@ int main()
                 max_elapsed_time = elapsed_time[i];
         }
         printf("Av. elapsed time: %f usec\n", (whole_elapsed_time * 1e6) / testsNum);
-        printf("  min. elapsed time: %f usec\n", min_elapsed_time * 1e6);
-        printf("  max. elapsed time: %f usec\n", max_elapsed_time * 1e6);
-        printf("Inner time 1: %f usec\n", (whole_inner_time1 * 1e6) / testsNum);
-        printf("Inner time 2: %f usec\n", (whole_inner_time2 * 1e6) / testsNum);
+//        printf("  min. elapsed time: %f usec\n", min_elapsed_time * 1e6);
+//        printf("  max. elapsed time: %f usec\n", max_elapsed_time * 1e6);
+//        printf("Inner time 1: %f usec\n", (whole_inner_time1 * 1e6) / testsNum);
+//        printf("Inner time 2: %f usec\n", (whole_inner_time2 * 1e6) / testsNum);
         printf("Av. speed: %g Mb/s\n", ((double)(nodesToRecoverNum) * 1024 * 16 * testsNum) / (whole_elapsed_time * 1e6));
-        printf("  max. speed: %g Mb/s\n", ((double)(nodesToRecoverNum) * 1024 * 16) / (min_elapsed_time * 1e6));
-        printf("  min. speed: %g Mb/s\n", ((double)(nodesToRecoverNum) * 1024 * 16) / (max_elapsed_time * 1e6));
+//        printf("  max. speed: %g Mb/s\n", ((double)(nodesToRecoverNum) * 1024 * 16) / (min_elapsed_time * 1e6));
+        //printf("  min. speed: %g Mb/s\n", ((double)(nodesToRecoverNum) * 1024 * 16) / (max_elapsed_time * 1e6));
     }
 
     return 0;
