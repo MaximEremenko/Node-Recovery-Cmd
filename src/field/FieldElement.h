@@ -256,7 +256,8 @@ public:
 
     static inline int correctLog(int x)
     {
-        return (x & 0xFFFF) + (x >> 16);
+        return x >= 0xFFFF ? x - 0xFFFF : x;
+        //return (x & 0xFFFF) + (x >> 16);
     }
 
 private:
