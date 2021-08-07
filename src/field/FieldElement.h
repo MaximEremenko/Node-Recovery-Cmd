@@ -3,6 +3,8 @@
 
 #include "FieldDefs.h"
 
+class LogFieldElement;
+
 class FieldElement {
 public:
     FieldElement()
@@ -29,24 +31,24 @@ public:
         return m_iElement;
     }
     
-    inline const FieldElement& operator= (const FieldElement& element)
+    inline const FieldElement operator= (const FieldElement element)
     {
         m_iElement = element.m_iElement;
         return *this;
     }
     
-    inline const FieldElement& operator= (const fe_type iElement)
+    inline const FieldElement operator= (const fe_type iElement)
     {
         m_iElement = iElement;
         return *this;
     }
     
-    inline bool operator == (const FieldElement& element) const
+    inline bool operator == (const FieldElement element) const
     {
         return (m_iElement == element.m_iElement);
     }
     
-    inline FieldElement operator+ (const FieldElement& element) const
+    inline FieldElement operator+ (const FieldElement element) const
     {
         FieldElement result(m_iElement^element.m_iElement);
         return result;
@@ -58,19 +60,19 @@ public:
         return result;
     }
     
-    inline const FieldElement& operator+= (const FieldElement& element)
+    inline const FieldElement operator+= (const FieldElement element)
     {
         m_iElement ^= element.m_iElement;
         return *this;
     }
     
-    inline const FieldElement& operator+= (const fe_type iElement)
+    inline const FieldElement operator+= (const fe_type iElement)
     {
         m_iElement ^= iElement;
         return *this;
     }
 
-    inline FieldElement operator* (const FieldElement& element) const
+    inline FieldElement operator* (const FieldElement element) const
     {
         //FieldElement result;
 
@@ -82,7 +84,7 @@ public:
             LOG16[m_iElement],
             LOG16[element.m_iElement],
             LOG16[m_iElement] + LOG16[element.m_iElement],
-            ALOG16[LOG16[m_iElement] + LOG16[element.m_iElement]]);*/
+            ALOG16[LOG16[m_iElement] + LOG16[element.m_iElement]]); */
             
 
         FieldElement result(GF_W16_INLINE_MULT(LOG16, ALOG16, m_iElement, element.m_iElement));
@@ -127,158 +129,78 @@ public:
         FieldElement result(GF_W16_INLINE_DIV(LOG16, DALOG16, 1, m_iElement));
         return result;
     }
+
+    inline LogFieldElement toLog() const;
+
 private:
     fe_type m_iElement;
     friend class NonZeroFieldElement;
 };
 
-#include "iostream"
+const unsigned int ZeroFlag = 0xFF000000;
+const unsigned int ZeroInit = 0x01000000;
 
-void assert_x(fe_type iElement)
-{
-    if (1 / iElement)
-        std::cout << "";
-}
-
-class LogFieldElement;
-
-class NonZeroFieldElement {
-public:
-    NonZeroFieldElement(fe_type iElement)
-    {
-        m_iElement = iElement;
-        //assert_x(m_iElement);
-    }
-
-    NonZeroFieldElement(const FieldElement& element)
-    {
-        m_iElement = element.m_iElement;
-        //assert_x(m_iElement);
-    }
-
-    NonZeroFieldElement(const  NonZeroFieldElement& element) = default;
-
-    ~NonZeroFieldElement()
-    {
-    }
-
-    FieldElement toFieldElement()
-    {
-        return FieldElement(getElement());
-    }
-
-    fe_type getElement() const
-    {
-        return m_iElement;
-    }
-
-    inline const NonZeroFieldElement& operator= (const FieldElement& element)
-    {
-        m_iElement = element.m_iElement;
-        //assert_x(m_iElement);
-        return *this;
-    }
-
-    inline const NonZeroFieldElement& operator= (const fe_type iElement)
-    {
-        m_iElement = iElement;
-        //assert_x(m_iElement);
-        return *this;
-    }
-
-    inline bool operator == (const NonZeroFieldElement& element) const
-    {
-        return (m_iElement == element.m_iElement);
-    }
-
-    inline FieldElement operator+ (const NonZeroFieldElement& element) const
-    {
-        FieldElement result(m_iElement ^ element.m_iElement);
-
-        return result;
-    }
-
-    inline FieldElement operator+ (const fe_type iElement) const
-    {
-        FieldElement result(m_iElement ^ iElement);
-        return result;
-    }
-
-
-    inline LogFieldElement toLog() const;
-    
-
-    inline NonZeroFieldElement operator~ () const
-    {
-        //FieldElement result(INV_EL[m_iElement-1]);
-        //FieldElement result(GF.inverse.w32(&GF, m_iElement));
-        NonZeroFieldElement result(GF_W16_INLINE_DIV(LOG16, DALOG16, 1, m_iElement));
-        return result;
-    }
-private:
-    fe_type m_iElement;
-};
-
+unsigned int maxLog = 0;
 
 class LogFieldElement
 {
-public:
-    LogFieldElement(int iLogElement) : m_iLogElement(iLogElement) {}
 
-    NonZeroFieldElement toNormal()
+    LogFieldElement(unsigned int val) : m_iLogElement(val) {}
+public:
+    LogFieldElement() = default;
+
+    explicit LogFieldElement(FieldElement elem) : m_iLogElement(LOG16_UI[elem.getElement()]) {}
+
+    FieldElement toNormal()
     {
-/*        printf("toNormal: logElem = %x, index = %x, normal = %x\n",
+        if (m_iLogElement & ZeroFlag)
+        {
+            return 0;
+        }
+        /*printf("toNormal: logElem = %x, index = %x, normal = %x\n",
             m_iLogElement,
             m_iLogElement & 0x1FFFF,
             ALOG16[m_iLogElement & 0x1FFFF]); */
-        return NonZeroFieldElement(ALOG16[correctLog(m_iLogElement)]);
+//        if ((m_iLogElement & ~ZeroFlag) > maxLog)
+        //{
+          //  maxLog = (m_iLogElement & ~ZeroFlag);
+        //}
+
+        return FieldElement(ALOG16[correctLog(m_iLogElement & ~ZeroFlag)]);
     }
 
-    LogFieldElement operator * (const LogFieldElement& other)
+    LogFieldElement operator * (const LogFieldElement other)
     {
-        /*printf("log*: logx = %x, logy = %x, result = %x\n",
-            m_iLogElement,
-            other.m_iLogElement, 
-            LogFieldElement(m_iLogElement + other.m_iLogElement).m_iLogElement);*/
-           
-        return LogFieldElement((m_iLogElement + other.m_iLogElement));
+        return  m_iLogElement + other.m_iLogElement;
     }
 
-    FieldElement operator * (const FieldElement& other)
+    LogFieldElement operator * (const FieldElement other)
     {
-        return FieldElement(ALOG16[(m_iLogElement + LOG16[other.getElement()])]);
+        return LogFieldElement(m_iLogElement + LOG16_UI[other.getElement()]);
     }
 
-    NonZeroFieldElement operator * (const NonZeroFieldElement& other)
+    LogFieldElement operator * (const fe_type other)
     {
-        return NonZeroFieldElement(ALOG16[(m_iLogElement + LOG16[other.getElement()])]);
+        return (m_iLogElement + LOG16_UI[other]);
     }
 
     static inline int correctLog(int x)
     {
+        while (x >= 0xFFFF) x -= 0xFFFF;
+        return x;
         //return x >= 0xFFFF ? x - 0xFFFF : x;
-        return (x & 0xFFFF) + (x >> 16);
+        //return (x & 0xFFFF) + (x >> 16);
     }
 
 private:
 
-    int m_iLogElement;
+    unsigned int m_iLogElement = 0;
 };
 
-LogFieldElement NonZeroFieldElement::toLog() const
+LogFieldElement FieldElement::toLog() const
 {
     //printf("toLog: x = %x, logx = %x\n", m_iElement, LOG16[m_iElement]);
-    return LogFieldElement(LOG16[m_iElement]);
-}
-
-FieldElement operator + (const FieldElement& left, const NonZeroFieldElement& right)
-{
-    return FieldElement(left.getElement() ^ right.getElement());
-}
-
-FieldElement operator + (const NonZeroFieldElement& left, const FieldElement& right)
-{
-    return FieldElement(left.getElement() ^ right.getElement());
+    return LogFieldElement(*this);
 }
 
 static const FieldElement ZERO_ELEMENT = FieldElement(0);

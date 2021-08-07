@@ -219,64 +219,16 @@ void vand4_inv(FieldElement B[4][4], FieldElement a, FieldElement b, FieldElemen
     B[3][3] = w3;
 }
 
-void vand4_inv_old(fe_type B[4][4], NonZeroFieldElement a, NonZeroFieldElement b, NonZeroFieldElement c, NonZeroFieldElement d)
-{
-    LogFieldElement abLog = NonZeroFieldElement(a + b).toLog();
-    LogFieldElement acLog = NonZeroFieldElement(a + c).toLog();
-    LogFieldElement adLog = NonZeroFieldElement(a + d).toLog();
-    FieldElement bc = NonZeroFieldElement(b + c).toLog().toNormal().toFieldElement();
-    FieldElement bd = NonZeroFieldElement(b + d).toLog().toNormal().toFieldElement();
-    FieldElement cd = NonZeroFieldElement(c + d).toLog().toNormal().toFieldElement();
-    FieldElement abcd = FieldElement((a + b).getElement()) + FieldElement((c + d).getElement());
-
-    FieldElement a_b_c_d = a.toFieldElement() * b.toFieldElement() * c.toFieldElement() * d.toFieldElement();
-    FieldElement c_c = c.toFieldElement() * c.toFieldElement();
-    FieldElement d_d = d.toFieldElement() * d.toFieldElement();
-
-    FieldElement inva = ~a.toFieldElement();
-    FieldElement invb = ~b.toFieldElement();
-    FieldElement invc = ~c.toFieldElement();
-    FieldElement invd = ~d.toFieldElement();
-
-    FieldElement ad = adLog.toNormal().toFieldElement();
-
-    FieldElement w0 = ~((abLog * acLog).toNormal().toFieldElement() * ad);
-    FieldElement w1 = ~(abLog.toNormal().toFieldElement() * bc * bd);
-    FieldElement w2 = ~(acLog.toNormal().toFieldElement() * bc * cd);
-    FieldElement w3 = ~(ad * bd * cd);
-
-    B[0][0] = (w0 * a_b_c_d * inva).getElement();
-    B[0][1] = (w0 * (bd * cd + d_d)).getElement();
-    B[0][2] = (w0 * (abcd + a)).getElement();
-    B[0][3] = w0.getElement();
-
-    B[1][0] = (w1 * a_b_c_d * invb).getElement();
-    B[1][1] = (w1 * (ad * cd + d_d)).getElement();
-    B[1][2] = (w1 * (abcd + b)).getElement();
-    B[1][3] = w1.getElement();
-
-    B[2][0] = (w2 * a_b_c_d * invc).getElement();
-    B[2][1] = (w2 * (ad * bd + d_d)).getElement();
-    B[2][2] = (w2 * (abcd + c)).getElement();
-    B[2][3] = w2.getElement();
-
-    B[3][0] = (w3 * a_b_c_d * invd).getElement();
-    B[3][1] = (w3 * (acLog.toNormal().toFieldElement() * bc + c_c)).getElement();
-    B[3][2] = (w3 * (abcd + d)).getElement();
-    B[3][3] = w3.getElement();
-}
-
-
 // Inversion of Vandermond matrix of size 4x4
-void vand4_inv2(fe_type B[4][4], NonZeroFieldElement a, NonZeroFieldElement b, NonZeroFieldElement c, NonZeroFieldElement d)
+void vand4_inv2(LogFieldElement B[4][4], FieldElement a, FieldElement b, FieldElement c, FieldElement d)
 {
-    LogFieldElement abLog = NonZeroFieldElement(a + b).toLog();
-    LogFieldElement acLog = NonZeroFieldElement(a + c).toLog();
-    LogFieldElement adLog = NonZeroFieldElement(a + d).toLog();
-    LogFieldElement bcLog = NonZeroFieldElement(b + c).toLog();
-    LogFieldElement bdLog = NonZeroFieldElement(b + d).toLog();
-    LogFieldElement cdLog = NonZeroFieldElement(c + d).toLog();
-    FieldElement abcd = FieldElement((a + b).getElement()) + FieldElement((c + d).getElement());
+    LogFieldElement abLog = (a + b).toLog();
+    LogFieldElement acLog = (a + c).toLog();
+    LogFieldElement adLog = (a + d).toLog();
+    LogFieldElement bcLog = (b + c).toLog();
+    LogFieldElement bdLog = (b + d).toLog();
+    LogFieldElement cdLog = (c + d).toLog();
+    FieldElement abcd = ((a + b) + (c + d));
 
     LogFieldElement cLog = c.toLog();
     LogFieldElement dLog = d.toLog();
@@ -294,25 +246,25 @@ void vand4_inv2(fe_type B[4][4], NonZeroFieldElement a, NonZeroFieldElement b, N
     LogFieldElement w2 = (~(acLog * bcLog * cdLog).toNormal()).toLog();
     LogFieldElement w3 = (~(adLog * bdLog * cdLog).toNormal()).toLog();
 
-    B[0][0] = (w0 * a_b_c_d * inva).toNormal().getElement();
-    B[0][1] = (w0 * ((bdLog * cdLog).toNormal() + d_d.toNormal())).getElement();
-    B[0][2] = (w0 * (abcd + a)).getElement();
-    B[0][3] = w0.toNormal().getElement();
+    B[0][0] = (w0 * a_b_c_d * inva);
+    B[0][1] = (w0 * ((bdLog * cdLog).toNormal() + d_d.toNormal()));
+    B[0][2] = (w0 * (abcd + a));
+    B[0][3] = w0;
 
-    B[1][0] = (w1 * a_b_c_d * invb).toNormal().getElement();
-    B[1][1] = (w1 * ((adLog * cdLog).toNormal() + d_d.toNormal())).getElement();
-    B[1][2] = (w1 * (abcd + b)).getElement();
-    B[1][3] = w1.toNormal().getElement();
+    B[1][0] = (w1 * a_b_c_d * invb);
+    B[1][1] = (w1 * ((adLog * cdLog).toNormal() + d_d.toNormal()));
+    B[1][2] = (w1 * (abcd + b));
+    B[1][3] = w1;
 
-    B[2][0] = ((w2 * a_b_c_d) * invc).toNormal().getElement();
-    B[2][1] = (w2 * ((adLog * bdLog).toNormal() + d_d.toNormal())).getElement();
-    B[2][2] = (w2 * (abcd + c)).getElement();
-    B[2][3] = w2.toNormal().getElement();
+    B[2][0] = ((w2 * a_b_c_d) * invc);
+    B[2][1] = (w2 * ((adLog * bdLog).toNormal() + d_d.toNormal()));
+    B[2][2] = (w2 * (abcd + c));
+    B[2][3] = w2;
 
-    B[3][0] = ((w3 * a_b_c_d) * invd).toNormal().getElement();
-    B[3][1] = (w3 * ((acLog * bcLog).toNormal() + c_c.toNormal())).getElement();
-    B[3][2] = (w3 * (abcd + d)).getElement();
-    B[3][3] = w3.toNormal().getElement();
+    B[3][0] = ((w3 * a_b_c_d) * invd);
+    B[3][1] = (w3 * ((acLog * bcLog).toNormal() + c_c.toNormal()));
+    B[3][2] = (w3 * (abcd + d));
+    B[3][3] = w3;
 }
 
 
@@ -421,8 +373,9 @@ double ext_recover_4_nodes_core(unsigned int* pNodesToRecoverIdx, Node* pNodes, 
     auto start_time = chrono::high_resolution_clock::now();
 
     fe_type currCol[4] = { 0, 0, 0, 0 };
+    LogFieldElement currColLog[4];
     fe_type recData[4] = { 0, 0, 0, 0 };
-    fe_type invMatr[4][4] = { {0,0,0,0}, {0,0,0,0}, {0,0,0,0}, {0,0,0,0} };
+    LogFieldElement invMatr[4][4];
 
 
     unsigned int AIdx = 0, lambdaId = 0, nodeId = 0;
@@ -478,30 +431,35 @@ double ext_recover_4_nodes_core(unsigned int* pNodesToRecoverIdx, Node* pNodes, 
             pCurrData = (fe_type*)(&sameLambdaRes[AIdx][lambdaId][3][0]);
             currCol[3] ^= pCurrData[sameLambdaResCounter[AIdx][lambdaId]];
 
+
             ++sameLambdaResCounter[AIdx][lambdaId];
         }
+        currColLog[0] = LogFieldElement(FieldElement(currCol[0]));
+        currColLog[1] = LogFieldElement(FieldElement(currCol[1]));
+        currColLog[2] = LogFieldElement(FieldElement(currCol[2]));
+        currColLog[3] = LogFieldElement(FieldElement(currCol[3]));
 
-        ext_vand4_inv(invMatr, recNodesCoeff[i][0], recNodesCoeff[i][1], recNodesCoeff[i][2], recNodesCoeff[i][3]);
+        vand4_inv2(invMatr, recNodesCoeff[i][0], recNodesCoeff[i][1], recNodesCoeff[i][2], recNodesCoeff[i][3]);
 
-        recData[0] = GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[0][0], currCol[0]);
-        recData[0] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[0][1], currCol[1]);
-        recData[0] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[0][2], currCol[2]);
-        recData[0] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[0][3], currCol[3]);
+        recData[0] = (invMatr[0][0] * currColLog[0]).toNormal().getElement();
+        recData[0] ^= (invMatr[0][1] * currColLog[1]).toNormal().getElement();
+        recData[0] ^= (invMatr[0][2] * currColLog[2]).toNormal().getElement();
+        recData[0] ^= (invMatr[0][3] * currColLog[3]).toNormal().getElement();
 
-        recData[1] = GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[1][0], currCol[0]);
-        recData[1] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[1][1], currCol[1]);
-        recData[1] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[1][2], currCol[2]);
-        recData[1] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[1][3], currCol[3]);
+        recData[1] = (invMatr[1][0] * currColLog[0]).toNormal().getElement();
+        recData[1] ^= (invMatr[1][1] * currColLog[1]).toNormal().getElement();
+        recData[1] ^= (invMatr[1][2] * currColLog[2]).toNormal().getElement();
+        recData[1] ^= (invMatr[1][3] * currColLog[3]).toNormal().getElement();
 
-        recData[2] = GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[2][0], currCol[0]);
-        recData[2] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[2][1], currCol[1]);
-        recData[2] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[2][2], currCol[2]);
-        recData[2] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[2][3], currCol[3]);
+        recData[2] = (invMatr[2][0] * currColLog[0]).toNormal().getElement();
+        recData[2] ^= (invMatr[2][1] * currColLog[1]).toNormal().getElement();
+        recData[2] ^= (invMatr[2][2] * currColLog[2]).toNormal().getElement();
+        recData[2] ^= (invMatr[2][3] * currColLog[3]).toNormal().getElement();
 
-        recData[3] = GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[3][0], currCol[0]);
-        recData[3] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[3][1], currCol[1]);
-        recData[3] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[3][2], currCol[2]);
-        recData[3] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[3][3], currCol[3]);
+        recData[3] = (invMatr[3][0] * currColLog[0]).toNormal().getElement();
+        recData[3] ^= (invMatr[3][1] * currColLog[1]).toNormal().getElement();
+        recData[3] ^= (invMatr[3][2] * currColLog[2]).toNormal().getElement();
+        recData[3] ^= (invMatr[3][3] * currColLog[3]).toNormal().getElement();
 
         pNodes[pNodesToRecoverIdx[0]].setData(i, recData[0]);
         pNodes[pNodesToRecoverIdx[1]].setData(i, recData[1]);
@@ -1555,6 +1513,14 @@ int main()
     ALOG16 = gf_w16_get_mult_alog_table(&GF);
     DALOG16 = gf_w16_get_div_alog_table(&GF);
 
+    LOG16_UI = new unsigned int[0x10000];
+
+    for (int i = 0; i <= 0xFFFF; ++i)
+    {
+        LOG16_UI[i] = LOG16[i];
+    }
+    LOG16_UI[0] = ZeroInit;
+
     for (int i = 0, e = 0; i <= 0x1FFFF && e < 10; ++i)
     {
         if (LOG16[ALOG16[i]] != LogFieldElement::correctLog(i))
@@ -1568,30 +1534,27 @@ int main()
         }
     }
 
+    fe_type val = 1;
 
     FieldElement data = 0x000FF;
-    NonZeroFieldElement nzData = data.getElement();
-    fe_type val = 1;
-    data = val;
-    nzData = val;
+    FieldElement nzData = data.getElement();
 
-    int maxLog = 0;
+    //data = val;
+    //nzData = val;
+
 
     for (; val < 0xFFFF; ++val)
     {
         data = val;
         nzData = val;
 
-        maxLog = std::max(maxLog, (int)LOG16[val]);
-
         if ((data * data * data).getElement() != (nzData.toLog() * nzData.toLog() * nzData.toLog()).toNormal().getElement())
         {
-            printf("Cube error for 0x%X", val);
+            printf("Cube error for 0x%X\n", val);
             break;
         }
     }
 
-//    printf("maxLog = %x\n", maxLog);
 //    printf("val = %X\n", val);
     
     FieldElement sq = data * data * data;
@@ -1922,5 +1885,6 @@ int main()
         //printf("  min. speed: %g Mb/s\n", ((double)(nodesToRecoverNum) * 1024 * 16) / (max_elapsed_time * 1e6));
     }
 
+    printf("max log 0x%X", maxLog);
     return 0;
 }
