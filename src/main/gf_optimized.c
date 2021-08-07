@@ -77,21 +77,23 @@ void calcHiLoTables(gf_t* gf)
 	}
 }
 
-void GF_multiply_region_w32(gf_t* gf, uint8_t* src, uint8_t* dest, gf_val_32_t val, int bytes, int xor)
+void GF_multiply_region_w32(gf_t* gf, uint8_t* src, uint8_t* dest, gf_val_32_t val)
 {
 	uint64_t i, j, * s64, * d64, * top64;;
 	uint64_t a, c, prod;
 	uint8_t low[4][16];
 	uint8_t high[4][16];
-	gf_region_data rd;
+//	gf_region_data rd;
 
 	__m128i  mask, ta, tb, ti, tpl, tph, tta, ttb, shuffler, unshuffler, lmask;
 
-	if (val == 0) { gf_multby_zero(dest, bytes, xor); return; }
-	if (val == 1) { gf_multby_one(src, dest, bytes, xor); return; }
+	if (val == 0) { gf_multby_zero(dest, 512, 1); return; }
+	if (val == 1) { gf_multby_one(src, dest, 512, 1); return; }
 
-	gf_set_region_data(&rd, gf, src, dest, bytes, val, xor, 32);
-	gf_do_initial_region_alignment(&rd);
+
+
+//	gf_set_region_data(&rd, gf, src, dest, bytes, val, 1, 32);
+	//	gf_do_initial_region_alignment(&rd);
 
 	struct gf_w16_logtable_data* ltd;
 	ltd = (struct gf_w16_logtable_data*)((gf_internal_t*)gf->scratch)->private;
@@ -99,112 +101,69 @@ void GF_multiply_region_w32(gf_t* gf, uint8_t* src, uint8_t* dest, gf_val_32_t v
 	// Нам гарантировано, что val != 0 , так как это случай обрабатывается отдельно
 	int logVal = (int)ltd->log_tbl[val];
 
-	s64 = (uint64_t*)rd.s_start;
-	d64 = (uint64_t*)rd.d_start;
-	top64 = (uint64_t*)rd.d_top;
+	s64 = (uint64_t*)src;
+	d64 = (uint64_t*)dest;
+	top64 = (uint64_t*)(dest + 512);
 
 	mask = _mm_set1_epi8(0x0f);
 	lmask = _mm_set1_epi16(0xff);
 
-	if (xor) {
 
-		const __m128i thigh_0 = _mm_loadu_si128(&highTable[val][0]);
-		const __m128i thigh_1 = _mm_loadu_si128(&highTable[val][1]);
-		const __m128i thigh_2 = _mm_loadu_si128(&highTable[val][2]);
-		const __m128i thigh_3 = _mm_loadu_si128(&highTable[val][3]);
-		const __m128i tlow_0 = _mm_loadu_si128(&lowTable[val][0]);
-		const __m128i tlow_1 = _mm_loadu_si128(&lowTable[val][1]);
-		const __m128i tlow_2 = _mm_loadu_si128(&lowTable[val][2]);
-		const __m128i tlow_3 = _mm_loadu_si128(&lowTable[val][3]);
+	const __m128i thigh_0 = _mm_loadu_si128(&highTable[val][0]);
+	const __m128i thigh_1 = _mm_loadu_si128(&highTable[val][1]);
+	const __m128i thigh_2 = _mm_loadu_si128(&highTable[val][2]);
+	const __m128i thigh_3 = _mm_loadu_si128(&highTable[val][3]);
+	const __m128i tlow_0 = _mm_loadu_si128(&lowTable[val][0]);
+	const __m128i tlow_1 = _mm_loadu_si128(&lowTable[val][1]);
+	const __m128i tlow_2 = _mm_loadu_si128(&lowTable[val][2]);
+	const __m128i tlow_3 = _mm_loadu_si128(&lowTable[val][3]);
 
-		while (d64 != top64) {
+	while (d64 != top64) {
 
-			ta = _mm_load_si128((__m128i*) s64);
-			tb = _mm_load_si128((__m128i*) (s64 + 2));
+		ta = _mm_load_si128((__m128i*) s64);
+		tb = _mm_load_si128((__m128i*) (s64 + 2));
 
-			tta = _mm_srli_epi16(ta, 8);
-			ttb = _mm_srli_epi16(tb, 8);
-			tpl = _mm_and_si128(tb, lmask);
-			tph = _mm_and_si128(ta, lmask);
+		tta = _mm_srli_epi16(ta, 8);
+		ttb = _mm_srli_epi16(tb, 8);
+		tpl = _mm_and_si128(tb, lmask);
+		tph = _mm_and_si128(ta, lmask);
 
-			tb = _mm_packus_epi16(tpl, tph);
-			ta = _mm_packus_epi16(ttb, tta);
+		tb = _mm_packus_epi16(tpl, tph);
+		ta = _mm_packus_epi16(ttb, tta);
 
-			ti = _mm_and_si128(mask, tb);
-			tph = _mm_shuffle_epi8(thigh_0, ti);
-			tpl = _mm_shuffle_epi8(tlow_0, ti);
+		ti = _mm_and_si128(mask, tb);
+		tph = _mm_shuffle_epi8(thigh_0, ti);
+		tpl = _mm_shuffle_epi8(tlow_0, ti);
 
-			tb = _mm_srli_epi16(tb, 4);
-			ti = _mm_and_si128(mask, tb);
-			tpl = _mm_xor_si128(_mm_shuffle_epi8(tlow_1, ti), tpl);
-			tph = _mm_xor_si128(_mm_shuffle_epi8(thigh_1, ti), tph);
+		tb = _mm_srli_epi16(tb, 4);
+		ti = _mm_and_si128(mask, tb);
+		tpl = _mm_xor_si128(_mm_shuffle_epi8(tlow_1, ti), tpl);
+		tph = _mm_xor_si128(_mm_shuffle_epi8(thigh_1, ti), tph);
 
-			ti = _mm_and_si128(mask, ta);
-			tpl = _mm_xor_si128(_mm_shuffle_epi8(tlow_2, ti), tpl);
-			tph = _mm_xor_si128(_mm_shuffle_epi8(thigh_2, ti), tph);
+		ti = _mm_and_si128(mask, ta);
+		tpl = _mm_xor_si128(_mm_shuffle_epi8(tlow_2, ti), tpl);
+		tph = _mm_xor_si128(_mm_shuffle_epi8(thigh_2, ti), tph);
 
-			ta = _mm_srli_epi16(ta, 4);
-			ti = _mm_and_si128(mask, ta);
-			tpl = _mm_xor_si128(_mm_shuffle_epi8(tlow_3, ti), tpl);
-			tph = _mm_xor_si128(_mm_shuffle_epi8(thigh_3, ti), tph);
+		ta = _mm_srli_epi16(ta, 4);
+		ti = _mm_and_si128(mask, ta);
+		tpl = _mm_xor_si128(_mm_shuffle_epi8(tlow_3, ti), tpl);
+		tph = _mm_xor_si128(_mm_shuffle_epi8(thigh_3, ti), tph);
 
-			ta = _mm_unpackhi_epi8(tpl, tph);
-			tb = _mm_unpacklo_epi8(tpl, tph);
+		ta = _mm_unpackhi_epi8(tpl, tph);
+		tb = _mm_unpacklo_epi8(tpl, tph);
 
-			tta = _mm_load_si128((__m128i*) d64);
-			ta = _mm_xor_si128(ta, tta);
-			ttb = _mm_load_si128((__m128i*) (d64 + 2));
-			tb = _mm_xor_si128(tb, ttb);
-			_mm_store_si128((__m128i*)d64, ta);
-			_mm_store_si128((__m128i*)(d64 + 2), tb);
+		tta = _mm_load_si128((__m128i*) d64);
+		ta = _mm_xor_si128(ta, tta);
+		ttb = _mm_load_si128((__m128i*) (d64 + 2));
+		tb = _mm_xor_si128(tb, ttb);
+		_mm_store_si128((__m128i*)d64, ta);
+		_mm_store_si128((__m128i*)(d64 + 2), tb);
 
-			d64 += 4;
-			s64 += 4;
+		d64 += 4;
+		s64 += 4;
 
-		}
-	}
-	else {
-		while (d64 != top64) {
-
-			ta = _mm_load_si128((__m128i*) s64);
-			tb = _mm_load_si128((__m128i*) (s64 + 2));
-
-			tta = _mm_srli_epi16(ta, 8);
-			ttb = _mm_srli_epi16(tb, 8);
-			tpl = _mm_and_si128(tb, lmask);
-			tph = _mm_and_si128(ta, lmask);
-
-			tb = _mm_packus_epi16(tpl, tph);
-			ta = _mm_packus_epi16(ttb, tta);
-
-			ti = _mm_and_si128(mask, tb);
-			tph = _mm_shuffle_epi8(_mm_loadu_si128(&highTable[val][0]), ti);
-			tpl = _mm_shuffle_epi8(_mm_loadu_si128(&lowTable[val][0]), ti);
-
-			tb = _mm_srli_epi16(tb, 4);
-			ti = _mm_and_si128(mask, tb);
-			tpl = _mm_xor_si128(_mm_shuffle_epi8(_mm_loadu_si128(&lowTable[val][1]), ti), tpl);
-			tph = _mm_xor_si128(_mm_shuffle_epi8(_mm_loadu_si128(&highTable[val][1]), ti), tph);
-
-			ti = _mm_and_si128(mask, ta);
-			tpl = _mm_xor_si128(_mm_shuffle_epi8(_mm_loadu_si128(&lowTable[val][2]), ti), tpl);
-			tph = _mm_xor_si128(_mm_shuffle_epi8(_mm_loadu_si128(&highTable[val][2]), ti), tph);
-
-			ta = _mm_srli_epi16(ta, 4);
-			ti = _mm_and_si128(mask, ta);
-			tpl = _mm_xor_si128(_mm_shuffle_epi8(_mm_loadu_si128(&lowTable[val][3]), ti), tpl);
-			tph = _mm_xor_si128(_mm_shuffle_epi8(_mm_loadu_si128(&highTable[val][3]), ti), tph);
-
-			ta = _mm_unpackhi_epi8(tpl, tph);
-			tb = _mm_unpacklo_epi8(tpl, tph);
-
-			_mm_store_si128((__m128i*)d64, ta);
-			_mm_store_si128((__m128i*)(d64 + 2), tb);
-
-			d64 += 4;
-			s64 += 4;
-		}
 	}
 
-	gf_do_final_region_alignment(&rd);
+
+	//	gf_do_final_region_alignment(&rd);
 }
