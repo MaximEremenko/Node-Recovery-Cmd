@@ -12,7 +12,7 @@ public:
         m_iElement = 0;
     }
         
-    FieldElement(fe_type iElement)
+    explicit FieldElement(fe_type iElement)
     {
         m_iElement = iElement;
     }
@@ -96,14 +96,6 @@ public:
     }
     */
     
-    inline FieldElement operator~ () const
-    {
-        //FieldElement result(INV_EL[m_iElement-1]);
-        //FieldElement result(GF.inverse.w32(&GF, m_iElement));
-        FieldElement result(GF_W16_INLINE_DIV(LOG16, DALOG16, 1, m_iElement));
-        return result;
-    }
-
     inline LogFieldElement toLog() const;
 
 private:
@@ -125,11 +117,11 @@ public:
 
     explicit LogFieldElement(FieldElement elem) : m_iLogElement(LOG16_UI[elem.getElement()]) {}
 
-    FieldElement toNormal()
+    FieldElement toNormal() const
     {
         if (m_iLogElement & ZeroFlag)
         {
-            return 0;
+            return FieldElement(0);
         }
         /*printf("toNormal: logElem = %x, index = %x, normal = %x\n",
             m_iLogElement,
@@ -143,19 +135,36 @@ public:
         return FieldElement(ALOG16[correctLog(m_iLogElement & ~ZeroFlag)]);
     }
 
-    LogFieldElement operator * (const LogFieldElement other)
+    LogFieldElement operator * (const LogFieldElement other) const
     {
         return  m_iLogElement + other.m_iLogElement;
     }
 
-    LogFieldElement operator * (const FieldElement other)
+    LogFieldElement operator * (const FieldElement other) const
     {
         return LogFieldElement(m_iLogElement + LOG16_UI[other.getElement()]);
     }
 
-    LogFieldElement operator * (const fe_type other)
+    LogFieldElement operator * (const fe_type other) const
     {
-        return (m_iLogElement + LOG16_UI[other]);
+        return LogFieldElement(m_iLogElement + LOG16_UI[other]);
+    }
+
+    LogFieldElement operator / (const LogFieldElement other) const
+    {
+        // Предполагаем, что other != 0, так как тут так никогда не бывает.
+        int result = static_cast<int>(m_iLogElement & ~ZeroFlag) - other.m_iLogElement;
+        while(result < 0)
+            result += 0xFFFF;
+        return (m_iLogElement & ZeroFlag) | static_cast<unsigned int>(result);
+    }
+
+    LogFieldElement operator ~() const
+    {
+        int result = 0 - static_cast<int>(m_iLogElement);
+        while (result < 0)
+            result += 0xFFFF;
+        return static_cast<unsigned int>(result);
     }
 
     static inline int correctLog(int x)
@@ -166,9 +175,13 @@ public:
         //return (x & 0xFFFF) + (x >> 16);
     }
 
+public:
+    static LogFieldElement logOneElement;
+
+
 private:
 
-    unsigned int m_iLogElement = 0;
+    unsigned int m_iLogElement = ZeroInit;
 };
 
 LogFieldElement FieldElement::toLog() const
