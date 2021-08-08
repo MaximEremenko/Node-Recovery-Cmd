@@ -72,55 +72,29 @@ public:
         return *this;
     }
 
-    inline FieldElement operator* (const FieldElement element) const
+/*    inline FieldElement operator* (const FieldElement element) const
     {
-        //FieldElement result;
-
-        //FieldElement result(GF.multiply.w32(&GF, m_iElement, element.m_iElement));
-
         /*printf("fe*: x = %x, y= %x, logX = %x, logY = %x, logx + logy = %x, alog[logx + logy] = %x\n",
             m_iElement,
             element.m_iElement,
             LOG16[m_iElement],
             LOG16[element.m_iElement],
             LOG16[m_iElement] + LOG16[element.m_iElement],
-            ALOG16[LOG16[m_iElement] + LOG16[element.m_iElement]]); */
+            ALOG16[LOG16[m_iElement] + LOG16[element.m_iElement]]); * /
             
 
         FieldElement result(GF_W16_INLINE_MULT(LOG16, ALOG16, m_iElement, element.m_iElement));
-
-        //if (m_iElement && element.m_iElement)
-        //{
-            //fe_type a_deg, b_deg, res = 0;
-            //a_deg = EL_TO_DEG[m_iElement - 1];
-            //b_deg = EL_TO_DEG[element.m_iElement - 1];
-            //res = (a_deg + b_deg);
-            //result.m_iElement = DEG_TO_EL[res - (res >= 4095)*4095];
-            //result.m_iElement = DEG_TO_EL[EL_TO_DEG[m_iElement - 1] + EL_TO_DEG[element.m_iElement - 1]];
-        //}
 
         return result;
     }
     
     inline FieldElement operator* (const fe_type iElement) const
     {
-        //FieldElement result;
-
-        //FieldElement result(GF.multiply.w32(&GF, m_iElement, iElement));
         FieldElement result(GF_W16_INLINE_MULT(LOG16, ALOG16, m_iElement, iElement));
-
-        //if (m_iElement && iElement)
-        //{
-            //fe_type a_deg, b_deg, res = 0;
-            //a_deg = EL_TO_DEG[m_iElement - 1];
-            //b_deg = EL_TO_DEG[iElement - 1];
-            //res = (a_deg + b_deg);
-            //result.m_iElement = DEG_TO_EL[res - (res >= 4095) * 4095];
-            //result.m_iElement = DEG_TO_EL[EL_TO_DEG[m_iElement - 1] + EL_TO_DEG[iElement - 1]];
-        //}
 
         return result;
     }
+    */
     
     inline FieldElement operator~ () const
     {

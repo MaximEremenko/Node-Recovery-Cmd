@@ -174,7 +174,7 @@ void ext_vand4_inv(fe_type B[4][4], fe_type a, fe_type b, fe_type c, fe_type d)
 }
 
 // Inversion of Vandermond matrix of size 4x4
-void vand4_inv(FieldElement B[4][4], FieldElement a, FieldElement b, FieldElement c, FieldElement d)
+/*void vand4_inv(FieldElement B[4][4], FieldElement a, FieldElement b, FieldElement c, FieldElement d)
 {
     FieldElement ab = a + b;
     FieldElement ac = a + c;
@@ -217,7 +217,7 @@ void vand4_inv(FieldElement B[4][4], FieldElement a, FieldElement b, FieldElemen
     B[3][1] = w3 * (ac * bc + c_c);
     B[3][2] = w3 * (abcd + d);
     B[3][3] = w3;
-}
+}*/
 
 // Inversion of Vandermond matrix of size 4x4
 void vand4_inv2(LogFieldElement B[4][4], FieldElement a, FieldElement b, FieldElement c, FieldElement d)
@@ -269,15 +269,15 @@ void vand4_inv2(LogFieldElement B[4][4], FieldElement a, FieldElement b, FieldEl
 
 
 // Inversion of Vandermond matrix of size 3x3
-void vand3_inv(FieldElement B[3][3], FieldElement a, FieldElement b, FieldElement c)
+void vand3_inv(LogFieldElement B[3][3], FieldElement a, FieldElement b, FieldElement c)
 {
-    FieldElement ab = a + b;
-    FieldElement ac = a + c;
-    FieldElement bc = b + c;
+    LogFieldElement ab = (a + b).toLog();
+    LogFieldElement ac = (a + c).toLog();
+    LogFieldElement bc = (b + c).toLog();
 
-    FieldElement w0 = ~(ab * ac);
-    FieldElement w1 = ~(ab * bc);
-    FieldElement w2 = ~(ac * bc);
+    LogFieldElement w0 = (~((ab * ac).toNormal())).toLog();
+    LogFieldElement w1 = (~((ab * bc).toNormal())).toLog();
+    LogFieldElement w2 = (~((ac * bc).toNormal())).toLog();
 
     B[0][0] = w0 * b * c;
     B[0][1] = w0 * bc;
@@ -293,9 +293,9 @@ void vand3_inv(FieldElement B[3][3], FieldElement a, FieldElement b, FieldElemen
 }
 
 // Inversion of Vandermond matrix of size 2x2
-void vand2_inv(FieldElement B[2][2], FieldElement a, FieldElement b)
+void vand2_inv(LogFieldElement B[2][2], FieldElement a, FieldElement b)
 {
-    FieldElement w0 = ~(a + b);
+    LogFieldElement w0 = (~(a + b)).toLog();
 
     B[0][0] = w0 * b;
     B[0][1] = w0;
@@ -611,7 +611,8 @@ FieldElement sameACol[4][3];
 double recover_4_nodes_core(unsigned int* pNodesToRecoverIdx, unsigned int ADataNodesNum[5], Node* pNodes)
 {
     FieldElement sumCol[4];
-    FieldElement invMatr[4][4], currRecData[4];
+    LogFieldElement invMatr[4][4];
+    FieldElement currRecData[4];
     FieldElement currSum[5], currSigmaSum[5], currSigmaPow2Sum[5], currSigmaPow3Sum[5];
 
     auto start_time = chrono::high_resolution_clock::now();
@@ -629,22 +630,46 @@ double recover_4_nodes_core(unsigned int* pNodesToRecoverIdx, unsigned int AData
             for (k = 0; k < ADataNodesNum[j]; ++k)
             {
                 currSum[j] += AData[i][j][k];
-                currSigmaSum[j] += ASigmas[j][k] * AData[i][j][k];
-                currSigmaPow2Sum[j] += ASigmasPow2[j][k] * AData[i][j][k];
-                currSigmaPow3Sum[j] += ASigmasPow3[j][k] * AData[i][j][k];
+                currSigmaSum[j] += (ASigmas[j][k].toLog() * AData[i][j][k]).toNormal();
+                currSigmaPow2Sum[j] += (ASigmasPow2[j][k].toLog() * AData[i][j][k]).toNormal();
+                currSigmaPow3Sum[j] += (ASigmasPow3[j][k].toLog() * AData[i][j][k]).toNormal();
             }
         }
         sumCol[0] = currSum[0] + currSum[1] + currSum[2] + currSum[3] + currSum[4];
-        sumCol[1] = currSigmaSum[0] * ACol[i][0][0] + currSigmaSum[1] * ACol[i][1][0] + currSigmaSum[2] * ACol[i][2][0] + currSigmaSum[3] * ACol[i][3][0] + currSigmaSum[4] * ACol[i][4][0];
-        sumCol[2] = currSigmaPow2Sum[0] * ACol[i][0][1] + currSigmaPow2Sum[1] * ACol[i][1][1] + currSigmaPow2Sum[2] * ACol[i][2][1] + currSigmaPow2Sum[3] * ACol[i][3][1] + currSigmaPow2Sum[4] * ACol[i][4][1];
-        sumCol[3] = currSigmaPow3Sum[0] * ACol[i][0][2] + currSigmaPow3Sum[1] * ACol[i][1][2] + currSigmaPow3Sum[2] * ACol[i][2][2] + currSigmaPow3Sum[3] * ACol[i][3][2] + currSigmaPow3Sum[4] * ACol[i][4][2];
+        sumCol[1] = (currSigmaSum[0].toLog() * ACol[i][0][0]).toNormal()
+            + (currSigmaSum[1].toLog() * ACol[i][1][0]).toNormal()
+            + (currSigmaSum[2].toLog() * ACol[i][2][0] ).toNormal()
+            + (currSigmaSum[3].toLog() * ACol[i][3][0]).toNormal()
+            + (currSigmaSum[4].toLog() * ACol[i][4][0]).toNormal();
+        sumCol[2] = (currSigmaPow2Sum[0].toLog() * ACol[i][0][1]).toNormal()
+            + (currSigmaPow2Sum[1].toLog() * ACol[i][1][1]).toNormal()
+            + (currSigmaPow2Sum[2].toLog() * ACol[i][2][1]).toNormal()
+            + (currSigmaPow2Sum[3].toLog() * ACol[i][3][1]).toNormal()
+            + (currSigmaPow2Sum[4].toLog() * ACol[i][4][1]).toNormal();
+        sumCol[3] = (currSigmaPow3Sum[0].toLog() * ACol[i][0][2]).toNormal()
+            + (currSigmaPow3Sum[1].toLog() * ACol[i][1][2]).toNormal()
+            + (currSigmaPow3Sum[2].toLog() * ACol[i][2][2]).toNormal()
+            + (currSigmaPow3Sum[3].toLog() * ACol[i][3][2]).toNormal()
+            + (currSigmaPow3Sum[4].toLog() * ACol[i][4][2]).toNormal();
 
-        vand4_inv(invMatr, nodesToRecLambdas[i][0], nodesToRecLambdas[i][1], nodesToRecLambdas[i][2], nodesToRecLambdas[i][3]);
+        vand4_inv2(invMatr, nodesToRecLambdas[i][0], nodesToRecLambdas[i][1], nodesToRecLambdas[i][2], nodesToRecLambdas[i][3]);
 
-        currRecData[0] = invMatr[0][0] * sumCol[0] + invMatr[0][1] * sumCol[1] + invMatr[0][2] * sumCol[2] + invMatr[0][3] * sumCol[3];
-        currRecData[1] = invMatr[1][0] * sumCol[0] + invMatr[1][1] * sumCol[1] + invMatr[1][2] * sumCol[2] + invMatr[1][3] * sumCol[3];
-        currRecData[2] = invMatr[2][0] * sumCol[0] + invMatr[2][1] * sumCol[1] + invMatr[2][2] * sumCol[2] + invMatr[2][3] * sumCol[3];
-        currRecData[3] = invMatr[3][0] * sumCol[0] + invMatr[3][1] * sumCol[1] + invMatr[3][2] * sumCol[2] + invMatr[3][3] * sumCol[3];
+        currRecData[0] = (invMatr[0][0] * sumCol[0]).toNormal()
+            + (invMatr[0][1] * sumCol[1]).toNormal()
+            + (invMatr[0][2] * sumCol[2]).toNormal()
+            + (invMatr[0][3] * sumCol[3]).toNormal();
+        currRecData[1] = (invMatr[1][0] * sumCol[0]).toNormal()
+            + (invMatr[1][1] * sumCol[1]).toNormal()
+            + (invMatr[1][2] * sumCol[2]).toNormal()
+            + (invMatr[1][3] * sumCol[3]).toNormal();
+        currRecData[2] = (invMatr[2][0] * sumCol[0]).toNormal()
+            + (invMatr[2][1] * sumCol[1]).toNormal()
+            + (invMatr[2][2] * sumCol[2]).toNormal()
+            + (invMatr[2][3] * sumCol[3]).toNormal();
+        currRecData[3] = (invMatr[3][0] * sumCol[0]).toNormal()
+            + (invMatr[3][1] * sumCol[1]).toNormal()
+            + (invMatr[3][2] * sumCol[2]).toNormal()
+            + (invMatr[3][3] * sumCol[3]).toNormal();
 
         pNodes[pNodesToRecoverIdx[0]].setData(i, currRecData[0]);
         pNodes[pNodesToRecoverIdx[1]].setData(i, currRecData[1]);
@@ -711,19 +736,19 @@ double recover_4_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
         currNodeToRec = pNodesToRecoverIdx[0];
         AIdx = AIdxArray[currNodeToRec];
         currLambdaIdx = lambdasIdx[AIdx];
-        nodesToRecLambdas[i][0] = FieldElement(lambdas[AIdx][currLambdaIdx]) * sigmas[currNodeToRec];
+        nodesToRecLambdas[i][0] = (FieldElement(lambdas[AIdx][currLambdaIdx]).toLog() * sigmas[currNodeToRec]).toNormal();
         currNodeToRec = pNodesToRecoverIdx[1];
         AIdx = AIdxArray[currNodeToRec];
         currLambdaIdx = lambdasIdx[AIdx];
-        nodesToRecLambdas[i][1] = FieldElement(lambdas[AIdx][currLambdaIdx]) * sigmas[currNodeToRec];
+        nodesToRecLambdas[i][1] = (FieldElement(lambdas[AIdx][currLambdaIdx]).toLog() * sigmas[currNodeToRec]).toNormal();
         currNodeToRec = pNodesToRecoverIdx[2];
         AIdx = AIdxArray[currNodeToRec];
         currLambdaIdx = lambdasIdx[AIdx];
-        nodesToRecLambdas[i][2] = FieldElement(lambdas[AIdx][currLambdaIdx]) * sigmas[currNodeToRec];
+        nodesToRecLambdas[i][2] = (FieldElement(lambdas[AIdx][currLambdaIdx]).toLog() * sigmas[currNodeToRec]).toNormal();
         currNodeToRec = pNodesToRecoverIdx[3];
         AIdx = AIdxArray[currNodeToRec];
         currLambdaIdx = lambdasIdx[AIdx];
-        nodesToRecLambdas[i][3] = FieldElement(lambdas[AIdx][currLambdaIdx]) * sigmas[currNodeToRec];
+        nodesToRecLambdas[i][3] = (FieldElement(lambdas[AIdx][currLambdaIdx]).toLog() * sigmas[currNodeToRec]).toNormal();
     }
 
     ADataNodesNum[0] = 0;
@@ -922,7 +947,8 @@ double recover_3_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
     int AIdx, currNodeToRec = 0, currLambdaIdx = 0;
 
     FieldElement currSum[5], currSigmaSum[5], currSigmaPow2Sum[5], sumCol[3];
-    FieldElement invMatr[3][3], currRecData[3];
+    LogFieldElement invMatr[3][3];
+    FieldElement currRecData[3];
 
     unsigned int ADataNodesNum[5] = { 0, 0, 0, 0, 0 };
 
@@ -964,15 +990,15 @@ double recover_3_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
         currNodeToRec = pNodesToRecoverIdx[0];
         AIdx = AIdxArray[currNodeToRec];
         currLambdaIdx = lambdasIdx[AIdx];
-        nodesToRecLambdas[i][0] = FieldElement(lambdas[AIdx][currLambdaIdx]) * sigmas[currNodeToRec];
+        nodesToRecLambdas[i][0] = (FieldElement(lambdas[AIdx][currLambdaIdx]).toLog() * sigmas[currNodeToRec]).toNormal();
         currNodeToRec = pNodesToRecoverIdx[1];
         AIdx = AIdxArray[currNodeToRec];
         currLambdaIdx = lambdasIdx[AIdx];
-        nodesToRecLambdas[i][1] = FieldElement(lambdas[AIdx][currLambdaIdx]) * sigmas[currNodeToRec];
+        nodesToRecLambdas[i][1] = (FieldElement(lambdas[AIdx][currLambdaIdx]).toLog() * sigmas[currNodeToRec]).toNormal();
         currNodeToRec = pNodesToRecoverIdx[2];
         AIdx = AIdxArray[currNodeToRec];
         currLambdaIdx = lambdasIdx[AIdx];
-        nodesToRecLambdas[i][2] = FieldElement(lambdas[AIdx][currLambdaIdx]) * sigmas[currNodeToRec];
+        nodesToRecLambdas[i][2] = (FieldElement(lambdas[AIdx][currLambdaIdx]).toLog() * sigmas[currNodeToRec]).toNormal();
     }
 
     ADataNodesNum[0] = 0;
@@ -1010,20 +1036,28 @@ double recover_3_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
             for (k = 0; k < ADataNodesNum[j]; ++k)
             {
                 currSum[j] += AData[i][j][k];
-                currSigmaSum[j] += ASigmas[j][k] * AData[i][j][k];
-                currSigmaPow2Sum[j] += ASigmasPow2[j][k] * AData[i][j][k];
+                currSigmaSum[j] += (ASigmas[j][k].toLog() * AData[i][j][k]).toNormal();
+                currSigmaPow2Sum[j] += (ASigmasPow2[j][k].toLog() * AData[i][j][k]).toNormal();
             }
         }
 
         sumCol[0] = currSum[0] + currSum[1] + currSum[2] + currSum[3] + currSum[4];
-        sumCol[1] = currSigmaSum[0] * ACol[i][0][0] + currSigmaSum[1] * ACol[i][1][0] + currSigmaSum[2] * ACol[i][2][0] + currSigmaSum[3] * ACol[i][3][0] + currSigmaSum[4] * ACol[i][4][0];
-        sumCol[2] = currSigmaPow2Sum[0] * ACol[i][0][1] + currSigmaPow2Sum[1] * ACol[i][1][1] + currSigmaPow2Sum[2] * ACol[i][2][1] + currSigmaPow2Sum[3] * ACol[i][3][1] + currSigmaPow2Sum[4] * ACol[i][4][1];
+        sumCol[1] = (currSigmaSum[0].toLog() * ACol[i][0][0]).toNormal()
+            + (currSigmaSum[1].toLog() * ACol[i][1][0]).toNormal()
+            + (currSigmaSum[2].toLog() * ACol[i][2][0]).toNormal()
+            + (currSigmaSum[3].toLog() * ACol[i][3][0]).toNormal()
+            + (currSigmaSum[4].toLog() * ACol[i][4][0]).toNormal();
+        sumCol[2] = (currSigmaPow2Sum[0].toLog() * ACol[i][0][1]).toNormal()
+            + (currSigmaPow2Sum[1].toLog() * ACol[i][1][1]).toNormal()
+            + (currSigmaPow2Sum[2].toLog() * ACol[i][2][1]).toNormal()
+            + (currSigmaPow2Sum[3].toLog() * ACol[i][3][1]).toNormal()
+            + (currSigmaPow2Sum[4].toLog() * ACol[i][4][1]).toNormal();
 
         vand3_inv(invMatr, nodesToRecLambdas[i][0], nodesToRecLambdas[i][1], nodesToRecLambdas[i][2]);
 
-        currRecData[0] = invMatr[0][0] * sumCol[0] + invMatr[0][1] * sumCol[1] + invMatr[0][2] * sumCol[2];
-        currRecData[1] = invMatr[1][0] * sumCol[0] + invMatr[1][1] * sumCol[1] + invMatr[1][2] * sumCol[2];
-        currRecData[2] = invMatr[2][0] * sumCol[0] + invMatr[2][1] * sumCol[1] + invMatr[2][2] * sumCol[2];
+        currRecData[0] = (invMatr[0][0] * sumCol[0]).toNormal() + (invMatr[0][1] * sumCol[1]).toNormal() + (invMatr[0][2] * sumCol[2]).toNormal();
+        currRecData[1] = (invMatr[1][0] * sumCol[0]).toNormal() + (invMatr[1][1] * sumCol[1]).toNormal() + (invMatr[1][2] * sumCol[2]).toNormal();
+        currRecData[2] = (invMatr[2][0] * sumCol[0]).toNormal() + (invMatr[2][1] * sumCol[1]).toNormal() + (invMatr[2][2] * sumCol[2]).toNormal();
 
         pNodes[pNodesToRecoverIdx[0]].setData(i, currRecData[0]);
         pNodes[pNodesToRecoverIdx[1]].setData(i, currRecData[1]);
@@ -1192,7 +1226,8 @@ double recover_2_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
     int AIdx, currNodeToRec = 0, currLambdaIdx = 0;
 
     FieldElement currSum[5], currSigmaSum[5], sumCol[2];
-    FieldElement invMatr[2][2], currRecData[2];
+    LogFieldElement invMatr[2][2];
+    FieldElement currRecData[2];
 
     unsigned int ADataNodesNum[5] = { 0, 0, 0, 0, 0 };
 
@@ -1233,11 +1268,11 @@ double recover_2_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
         currNodeToRec = pNodesToRecoverIdx[0];
         AIdx = AIdxArray[currNodeToRec];
         currLambdaIdx = lambdasIdx[AIdx];
-        nodesToRecLambdas[i][0] = FieldElement(lambdas[AIdx][currLambdaIdx]) * sigmas[currNodeToRec];
+        nodesToRecLambdas[i][0] = (FieldElement(lambdas[AIdx][currLambdaIdx]).toLog() * sigmas[currNodeToRec]).toNormal();
         currNodeToRec = pNodesToRecoverIdx[1];
         AIdx = AIdxArray[currNodeToRec];
         currLambdaIdx = lambdasIdx[AIdx];
-        nodesToRecLambdas[i][1] = FieldElement(lambdas[AIdx][currLambdaIdx]) * sigmas[currNodeToRec];
+        nodesToRecLambdas[i][1] = (FieldElement(lambdas[AIdx][currLambdaIdx]).toLog() * sigmas[currNodeToRec]).toNormal();
     }
 
     ADataNodesNum[0] = 0;
@@ -1272,17 +1307,21 @@ double recover_2_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
             for (k = 0; k < ADataNodesNum[j]; ++k)
             {
                 currSum[j] += AData[i][j][k];
-                currSigmaSum[j] += ASigmas[j][k] * AData[i][j][k];
+                currSigmaSum[j] += (ASigmas[j][k].toLog() * AData[i][j][k]).toNormal();
             }
         }
 
         sumCol[0] = currSum[0] + currSum[1] + currSum[2] + currSum[3] + currSum[4];
-        sumCol[1] = currSigmaSum[0] * ACol[i][0][0] + currSigmaSum[1] * ACol[i][1][0] + currSigmaSum[2] * ACol[i][2][0] + currSigmaSum[3] * ACol[i][3][0] + currSigmaSum[4] * ACol[i][4][0];
+        sumCol[1] = (currSigmaSum[0].toLog() * ACol[i][0][0]).toNormal()
+            + (currSigmaSum[1].toLog() * ACol[i][1][0]).toNormal()
+            + (currSigmaSum[2].toLog() * ACol[i][2][0]).toNormal()
+            + (currSigmaSum[3].toLog() * ACol[i][3][0]).toNormal()
+            + (currSigmaSum[4].toLog() * ACol[i][4][0]).toNormal();
 
         vand2_inv(invMatr, nodesToRecLambdas[i][0], nodesToRecLambdas[i][1]);
 
-        currRecData[0] = invMatr[0][0] * sumCol[0] + invMatr[0][1] * sumCol[1];
-        currRecData[1] = invMatr[1][0] * sumCol[0] + invMatr[1][1] * sumCol[1];
+        currRecData[0] = (invMatr[0][0] * sumCol[0]).toNormal() + (invMatr[0][1] * sumCol[1]).toNormal();
+        currRecData[1] = (invMatr[1][0] * sumCol[0]).toNormal() + (invMatr[1][1] * sumCol[1]).toNormal();
 
         pNodes[pNodesToRecoverIdx[0]].setData(i, currRecData[0]);
         pNodes[pNodesToRecoverIdx[1]].setData(i, currRecData[1]);
@@ -1305,13 +1344,14 @@ double recover_1_node(unsigned int* pNodesToRecoverIdx, Node* pNodes)
 
     unsigned int subBlockIdx = 0, currNodeIdx = 0, currAIdx = 0, tempAIdx = 0, i = 0, j = 0;
 
-    FieldElement invMatr[4][4];
+    LogFieldElement invMatr[4][4];
     FieldElement nodeToRecSigma = FieldElement(sigmas[nodeToRecIdx]);
 
-    vand4_inv(invMatr, nodeToRecSigma * lambdas[nodeToRecAIdx][0],
-        nodeToRecSigma * lambdas[nodeToRecAIdx][1],
-        nodeToRecSigma * lambdas[nodeToRecAIdx][2],
-        nodeToRecSigma * lambdas[nodeToRecAIdx][3]);
+    vand4_inv2(invMatr, 
+        (nodeToRecSigma.toLog() * lambdas[nodeToRecAIdx][0]).toNormal(),
+        (nodeToRecSigma.toLog() * lambdas[nodeToRecAIdx][1]).toNormal(),
+        (nodeToRecSigma.toLog() * lambdas[nodeToRecAIdx][2]).toNormal(),
+        (nodeToRecSigma.toLog() * lambdas[nodeToRecAIdx][3]).toNormal());
 
     FieldElement diffAPartSum[4] = { ZERO_ELEMENT, ZERO_ELEMENT, ZERO_ELEMENT, ZERO_ELEMENT };
     FieldElement sameAPartSum[4] = { ZERO_ELEMENT, ZERO_ELEMENT, ZERO_ELEMENT, ZERO_ELEMENT };
@@ -1431,15 +1471,15 @@ double recover_1_node(unsigned int* pNodesToRecoverIdx, Node* pNodes)
             for (j = 0; j < diffANodeNum[i]; ++j)
             {
                 diffAPartSum[0] += diffAData[subBlockIdx][i][j];
-                diffAPartSum[1] += diffASigma[i][j] * diffAData[subBlockIdx][i][j];
-                diffAPartSum[2] += diffASigmaPow2[i][j] * diffAData[subBlockIdx][i][j];
-                diffAPartSum[3] += diffASigmaPow3[i][j] * diffAData[subBlockIdx][i][j];
+                diffAPartSum[1] += (diffASigma[i][j].toLog() * diffAData[subBlockIdx][i][j]).toNormal();
+                diffAPartSum[2] += (diffASigmaPow2[i][j].toLog() * diffAData[subBlockIdx][i][j]).toNormal();
+                diffAPartSum[3] += (diffASigmaPow3[i][j].toLog() * diffAData[subBlockIdx][i][j]).toNormal();
             }
 
             ASum[0] += diffAPartSum[0];
-            ASum[1] += diffAPartSum[1] * diffACol[subBlockIdx][i][0];
-            ASum[2] += diffAPartSum[2] * diffACol[subBlockIdx][i][1];
-            ASum[3] += diffAPartSum[3] * diffACol[subBlockIdx][i][2];
+            ASum[1] += (diffAPartSum[1].toLog() * diffACol[subBlockIdx][i][0]).toNormal();
+            ASum[2] += (diffAPartSum[2].toLog() * diffACol[subBlockIdx][i][1]).toNormal();
+            ASum[3] += (diffAPartSum[3].toLog() * diffACol[subBlockIdx][i][2]).toNormal();
         }
 
         for (i = 0; i < sameANodeNum; ++i)
@@ -1451,21 +1491,21 @@ double recover_1_node(unsigned int* pNodesToRecoverIdx, Node* pNodes)
             for (j = 0; j < 4; ++j)
             {
                 sameAPartSum[0] += sameAData[subBlockIdx][j][i];
-                sameAPartSum[1] += sameAData[subBlockIdx][j][i] * sameACol[j][0];
-                sameAPartSum[2] += sameAData[subBlockIdx][j][i] * sameACol[j][1];
-                sameAPartSum[3] += sameAData[subBlockIdx][j][i] * sameACol[j][2];;
+                sameAPartSum[1] += (sameAData[subBlockIdx][j][i].toLog() * sameACol[j][0]).toNormal();
+                sameAPartSum[2] += (sameAData[subBlockIdx][j][i].toLog() * sameACol[j][1]).toNormal();
+                sameAPartSum[3] += (sameAData[subBlockIdx][j][i].toLog() * sameACol[j][2]).toNormal();;
             }
             ASum[0] += sameAPartSum[0];
-            ASum[1] += sameASigma[i] * sameAPartSum[1];
-            ASum[2] += sameASigmaPow2[i] * sameAPartSum[2];
-            ASum[3] += sameASigmaPow3[i] * sameAPartSum[3];
+            ASum[1] += (sameASigma[i].toLog() * sameAPartSum[1]).toNormal();
+            ASum[2] += (sameASigmaPow2[i].toLog() * sameAPartSum[2]).toNormal();
+            ASum[3] += (sameASigmaPow3[i].toLog() * sameAPartSum[3]).toNormal();
         }
 
         for (i = 0; i < 4; ++i)
         {
             for (j = 0; j < 4; ++j)
             {
-                recData[i] += invMatr[i][j] * ASum[j];
+                recData[i] += (invMatr[i][j] * ASum[j]).toNormal();
             }
         }
 
@@ -1536,8 +1576,7 @@ int main()
 
     fe_type val = 1;
 
-    FieldElement data = 0x000FF;
-    FieldElement nzData = data.getElement();
+    FieldElement nzData = val;
 
     //data = val;
     //nzData = val;
@@ -1545,10 +1584,12 @@ int main()
 
     for (; val < 0xFFFF; ++val)
     {
-        data = val;
         nzData = val;
 
-        if ((data * data * data).getElement() != (nzData.toLog() * nzData.toLog() * nzData.toLog()).toNormal().getElement())
+        fe_type square = GF_W16_INLINE_MULT(LOG16, ALOG16, val, val);
+        fe_type cube = GF_W16_INLINE_MULT(LOG16, ALOG16, square, val);
+
+        if (cube != (nzData.toLog() * nzData.toLog() * nzData.toLog()).toNormal().getElement())
         {
             printf("Cube error for 0x%X\n", val);
             break;
@@ -1556,10 +1597,6 @@ int main()
     }
 
 //    printf("val = %X\n", val);
-    
-    FieldElement sq = data * data * data;
-
-//    printf("  FE: %0X ^3  = %0X\n\n*************\n\n", data.getElement(), sq.getElement());
     
     FieldElement nzsq = (nzData.toLog() * nzData.toLog() * nzData.toLog()).toNormal().getElement();
 
@@ -1642,7 +1679,7 @@ int main()
             int AIdx = AIdxArray[i];
             int currLambdaIdx = lambdasIdx[AIdx];
 
-            S = S + FieldElement(lambdas[AIdx][currLambdaIdx]) * FieldElement(sigmas[i]) * pNodes[i].getData(j);
+            S = S + (FieldElement(lambdas[AIdx][currLambdaIdx]).toLog() * FieldElement(sigmas[i]) * pNodes[i].getData(j)).toNormal();
         }
 
         if (S.getElement() != 0)
@@ -1653,7 +1690,7 @@ int main()
             int AIdx = AIdxArray[i];
             int currLambdaIdx = lambdasIdx[AIdx];
 
-            S = S + FieldElement(lambdas_pow2[AIdx][currLambdaIdx]) * FieldElement(sigmas_pow2[i]) * pNodes[i].getData(j);
+            S = S + (FieldElement(lambdas_pow2[AIdx][currLambdaIdx]).toLog() * FieldElement(sigmas_pow2[i]) * pNodes[i].getData(j)).toNormal();
         }
 
         if (S.getElement() != 0)
@@ -1664,7 +1701,7 @@ int main()
             int AIdx = AIdxArray[i];
             int currLambdaIdx = lambdasIdx[AIdx];
 
-            S = S + FieldElement(lambdas_pow3[AIdx][currLambdaIdx]) * FieldElement(sigmas_pow3[i]) * pNodes[i].getData(j);
+            S = S + (FieldElement(lambdas_pow3[AIdx][currLambdaIdx]).toLog() * FieldElement(sigmas_pow3[i]) * pNodes[i].getData(j)).toNormal();
         }
 
         if (S.getElement() != 0)
