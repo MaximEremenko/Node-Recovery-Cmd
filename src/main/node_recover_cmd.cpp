@@ -746,7 +746,7 @@ double ext_recover_3_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
     fe_type* pCurrData = 0, * pCurrRes = 0;
     fe_type currCol[3] = { 0, 0, 0 };
     fe_type recData[3] = { 0, 0, 0 };
-    fe_type invMatr[3][3] = { {0,0,0}, {0,0,0}, {0,0,0} };
+    LogFieldElement invMatr[3][3];
 
     for (i = 0; i < 4; ++i)
         for (j = 0; j < 154; ++j)
@@ -870,19 +870,19 @@ double ext_recover_3_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
             ++sameLambdaResCounter[AIdx][lambdaId];
         }
 
-        ext_vand3_inv(invMatr, recNodesCoeff[i][0], recNodesCoeff[i][1], recNodesCoeff[i][2]);
+        vand3_inv(invMatr, FieldElement(recNodesCoeff[i][0]), FieldElement(recNodesCoeff[i][1]), FieldElement(recNodesCoeff[i][2]));
 
-        recData[0] = GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[0][0], currCol[0]);
-        recData[0] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[0][1], currCol[1]);
-        recData[0] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[0][2], currCol[2]);
+        recData[0] = (invMatr[0][0] * currCol[0]).toNormal().getElement();
+        recData[0] ^= (invMatr[0][1] * currCol[1]).toNormal().getElement();
+        recData[0] ^= (invMatr[0][2] * currCol[2]).toNormal().getElement();
 
-        recData[1] = GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[1][0], currCol[0]);
-        recData[1] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[1][1], currCol[1]);
-        recData[1] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[1][2], currCol[2]);
+        recData[1] = (invMatr[1][0] * currCol[0]).toNormal().getElement();
+        recData[1] ^= (invMatr[1][1] * currCol[1]).toNormal().getElement();
+        recData[1] ^= (invMatr[1][2] * currCol[2]).toNormal().getElement();
 
-        recData[2] = GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[2][0], currCol[0]);
-        recData[2] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[2][1], currCol[1]);
-        recData[2] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[2][2], currCol[2]);
+        recData[2] = (invMatr[2][0] * currCol[0]).toNormal().getElement();
+        recData[2] ^= (invMatr[2][1] * currCol[1]).toNormal().getElement();
+        recData[2] ^= (invMatr[2][2] * currCol[2]).toNormal().getElement();
 
         pNodes[pNodesToRecoverIdx[0]].setData(i, FieldElement(recData[0]));
         pNodes[pNodesToRecoverIdx[1]].setData(i, FieldElement(recData[1]));
@@ -1040,7 +1040,7 @@ double ext_recover_2_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
     fe_type* pCurrData = 0, * pCurrRes = 0;
     fe_type currCol[2] = { 0, 0 };
     fe_type recData[2] = { 0, 0 };
-    fe_type invMatr[2][2] = { {0,0}, {0,0} };
+    LogFieldElement invMatr[2][2];
 
     for (i = 0; i < 4; ++i)
         for (j = 0; j < 154; ++j)
@@ -1157,13 +1157,13 @@ double ext_recover_2_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
             ++sameLambdaResCounter[AIdx][lambdaId];
         }
 
-        ext_vand2_inv(invMatr, recNodesCoeff[i][0], recNodesCoeff[i][1]);
+        vand2_inv(invMatr, FieldElement(recNodesCoeff[i][0]), FieldElement(recNodesCoeff[i][1]));
 
-        recData[0] = GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[0][0], currCol[0]);
-        recData[0] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[0][1], currCol[1]);
+        recData[0] = (invMatr[0][0] * currCol[0]).toNormal().getElement();
+        recData[0] ^= (invMatr[0][1] * currCol[1]).toNormal().getElement();
 
-        recData[1] = GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[1][0], currCol[0]);
-        recData[1] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[1][1], currCol[1]);
+        recData[1] = (invMatr[1][0] * currCol[0]).toNormal().getElement();
+        recData[1] ^= (invMatr[1][1] * currCol[1]).toNormal().getElement();
 
         pNodes[pNodesToRecoverIdx[0]].setData(i, FieldElement(recData[0]));
         pNodes[pNodesToRecoverIdx[1]].setData(i, FieldElement(recData[1]));
