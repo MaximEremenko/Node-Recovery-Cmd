@@ -77,6 +77,25 @@ void calcHiLoTables(gf_t* gf)
 	}
 }
 
+void gf_multby_one_ex(uint8_t* src, uint8_t* dest)
+{
+#ifdef   INTEL_SSE2
+	__m128i ms, md;
+#endif
+	uint8_t * send;
+	send = src + 512;
+
+	while (src < send) {
+		ms = _mm_load_si128((__m128i*)(src));
+		md = _mm_load_si128((__m128i*)(dest));
+		md = _mm_xor_si128(md, ms);
+		_mm_store_si128((__m128i*)(dest), md);
+		src += 16;
+		dest += 16;
+	}
+	return;
+}
+
 void GF_multiply_region_w32(gf_t* gf, uint8_t* src, uint8_t* dest, gf_val_32_t val)
 {
 	uint64_t i, j, * s64, * d64, * top64;;
@@ -87,8 +106,8 @@ void GF_multiply_region_w32(gf_t* gf, uint8_t* src, uint8_t* dest, gf_val_32_t v
 
 	__m128i  mask, ta, tb, ti, tpl, tph, tta, ttb, shuffler, unshuffler, lmask;
 
-	if (val == 0) { gf_multby_zero(dest, 512, 1); return; }
-	if (val == 1) { gf_multby_one(src, dest, 512, 1); return; }
+	if (val == 0) { return; }
+	if (val == 1) { gf_multby_one_ex(src, dest, 512, 1); return; }
 
 
 
