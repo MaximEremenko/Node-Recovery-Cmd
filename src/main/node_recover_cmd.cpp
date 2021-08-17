@@ -26,6 +26,9 @@
 //#endif
 
 
+#define _M_IX86 
+#define INTEL_SSSE3 1
+#include <mmintrin.h>
 
 #include "Node.h"
 #include "FieldDefs.h"
@@ -323,6 +326,28 @@ int tempKCounter[2400];
 int tempJCointer[2400];
 
 
+inline fe_type dot4(LogFieldElement* x, LogFieldElement* y)
+{
+    __m128i vx, vy;
+    vx = _mm_loadu_si128((__m128i*)x);
+    vy = _mm_loadu_si128((__m128i*)y);
+
+    const __m128i logProduct = _mm_add_epi32(vx, vy);
+
+    __m128i product;
+    product.m128i_u32[0] = ALOG16[LogFieldElement::correctLog(logProduct.m128i_u32[0] & ~ZeroFlag)];
+    product.m128i_u32[1] = ALOG16[LogFieldElement::correctLog(logProduct.m128i_u32[1] & ~ZeroFlag)];
+    product.m128i_u32[2] = ALOG16[LogFieldElement::correctLog(logProduct.m128i_u32[2] & ~ZeroFlag)];
+    product.m128i_u32[3] = ALOG16[LogFieldElement::correctLog(logProduct.m128i_u32[3] & ~ZeroFlag)];
+
+    if (logProduct.m128i_u32[0] & ZeroFlag) product.m128i_u32[0] = 0;
+    if (logProduct.m128i_u32[1] & ZeroFlag) product.m128i_u32[1] = 0;
+    if (logProduct.m128i_u32[2] & ZeroFlag) product.m128i_u32[2] = 0;
+    if (logProduct.m128i_u32[3] & ZeroFlag) product.m128i_u32[3] = 0;
+
+    return (product.m128i_u32[0] ^ product.m128i_u32[1]) ^ (product.m128i_u32[2] ^ product.m128i_u32[3]);
+}
+
 
 double ext_recover_4_nodes_core(unsigned int* pNodesToRecoverIdx, Node* pNodes, int lambdasIdx[5], fe_type* pCurrData, double* inneTime1, double* innerTime2)
 {
@@ -399,25 +424,10 @@ double ext_recover_4_nodes_core(unsigned int* pNodesToRecoverIdx, Node* pNodes, 
 
         vand4_inv(invMatr, FieldElement(recNodesCoeff[i][0]), FieldElement(recNodesCoeff[i][1]), FieldElement(recNodesCoeff[i][2]), FieldElement(recNodesCoeff[i][3]));
 
-        recData[0] = (invMatr[0][0] * currColLog[0]).toNormal().getElement();
-        recData[0] ^= (invMatr[0][1] * currColLog[1]).toNormal().getElement();
-        recData[0] ^= (invMatr[0][2] * currColLog[2]).toNormal().getElement();
-        recData[0] ^= (invMatr[0][3] * currColLog[3]).toNormal().getElement();
-
-        recData[1] = (invMatr[1][0] * currColLog[0]).toNormal().getElement();
-        recData[1] ^= (invMatr[1][1] * currColLog[1]).toNormal().getElement();
-        recData[1] ^= (invMatr[1][2] * currColLog[2]).toNormal().getElement();
-        recData[1] ^= (invMatr[1][3] * currColLog[3]).toNormal().getElement();
-
-        recData[2] = (invMatr[2][0] * currColLog[0]).toNormal().getElement();
-        recData[2] ^= (invMatr[2][1] * currColLog[1]).toNormal().getElement();
-        recData[2] ^= (invMatr[2][2] * currColLog[2]).toNormal().getElement();
-        recData[2] ^= (invMatr[2][3] * currColLog[3]).toNormal().getElement();
-
-        recData[3] = (invMatr[3][0] * currColLog[0]).toNormal().getElement();
-        recData[3] ^= (invMatr[3][1] * currColLog[1]).toNormal().getElement();
-        recData[3] ^= (invMatr[3][2] * currColLog[2]).toNormal().getElement();
-        recData[3] ^= (invMatr[3][3] * currColLog[3]).toNormal().getElement();
+        recData[0] = dot4(&invMatr[0][0], currColLog);
+        recData[1] = dot4(&invMatr[1][0], currColLog);
+        recData[2] = dot4(&invMatr[2][0], currColLog);
+        recData[3] = dot4(&invMatr[3][0], currColLog);
 
         pNodes[pNodesToRecoverIdx[0]].setData(i, FieldElement(recData[0]));
         pNodes[pNodesToRecoverIdx[1]].setData(i, FieldElement(recData[1]));
@@ -541,7 +551,7 @@ double ext_recover_4_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes, doubl
     }
 
 //    for (int x = 0; x < 10; ++x)
-        //ext_recover_4_nodes_core(pNodesToRecoverIdx, pNodes, lambdasIdx, pCurrData, inneTime1, innerTime2);
+  //      ext_recover_4_nodes_core(pNodesToRecoverIdx, pNodes, lambdasIdx, pCurrData, inneTime1, innerTime2);
 
     return ext_recover_4_nodes_core(pNodesToRecoverIdx, pNodes, lambdasIdx, pCurrData, inneTime1, innerTime2);
 }
@@ -1031,6 +1041,11 @@ double recover_3_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
 }
 
 
+inline fe_type dot2(LogFieldElement* x, LogFieldElement* y)
+{
+    return ((x[0] * y[0]).toNormal() + (x[1] * y[1]).toNormal()).getElement();
+}
+
 // 2 nodes recovery procedure extended
 double ext_recover_2_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
 {
@@ -1159,11 +1174,15 @@ double ext_recover_2_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
 
         vand2_inv(invMatr, FieldElement(recNodesCoeff[i][0]), FieldElement(recNodesCoeff[i][1]));
 
-        recData[0] = (invMatr[0][0] * currCol[0]).toNormal().getElement();
-        recData[0] ^= (invMatr[0][1] * currCol[1]).toNormal().getElement();
+        LogFieldElement logCurrCol[2];
+        logCurrCol[0] = FieldElement(currCol[0]).toLog();
+        logCurrCol[1] = FieldElement(currCol[1]).toLog();
 
-        recData[1] = (invMatr[1][0] * currCol[0]).toNormal().getElement();
-        recData[1] ^= (invMatr[1][1] * currCol[1]).toNormal().getElement();
+        recData[0] = dot2(&invMatr[0][0], logCurrCol); //  (invMatr[0][0] * logCurrCol[0]).toNormal().getElement();
+        // recData[0] ^= (invMatr[0][1] * logCurrCol[1]).toNormal().getElement();
+
+        recData[1] = dot2(&invMatr[1][0], logCurrCol);
+//        recData[1] ^= (invMatr[1][1] * logCurrCol[1]).toNormal().getElement();
 
         pNodes[pNodesToRecoverIdx[0]].setData(i, FieldElement(recData[0]));
         pNodes[pNodesToRecoverIdx[1]].setData(i, FieldElement(recData[1]));

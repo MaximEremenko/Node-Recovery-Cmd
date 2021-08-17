@@ -1,5 +1,6 @@
 #define INTEL_SSSE3 1
 #include <mmintrin.h>
+#include <immintrin.h>
 #include "gf_optimized.h"
 
 #include "gf_int.h"
@@ -98,7 +99,7 @@ void gf_multby_one_ex(uint8_t* src, uint8_t* dest)
 
 void GF_multiply_region_w32(gf_t* gf, uint8_t* src, uint8_t* dest, gf_val_32_t val)
 {
-	uint64_t i, j, * s64, * d64, * top64;;
+	uint64_t i, j, * s64, * d64, * top64;
 	uint64_t a, c, prod;
 	uint8_t low[4][16];
 	uint8_t high[4][16];
@@ -107,7 +108,7 @@ void GF_multiply_region_w32(gf_t* gf, uint8_t* src, uint8_t* dest, gf_val_32_t v
 	__m128i  mask, ta, tb, ti, tpl, tph, tta, ttb, shuffler, unshuffler, lmask;
 
 	if (val == 0) { return; }
-	if (val == 1) { gf_multby_one_ex(src, dest, 512, 1); return; }
+	if (val == 1) { gf_multby_one_ex(src, dest); return; }
 
 
 
@@ -144,6 +145,7 @@ void GF_multiply_region_w32(gf_t* gf, uint8_t* src, uint8_t* dest, gf_val_32_t v
 
 		tta = _mm_srli_epi16(ta, 8);
 		ttb = _mm_srli_epi16(tb, 8);
+
 		tpl = _mm_and_si128(tb, lmask);
 		tph = _mm_and_si128(ta, lmask);
 
