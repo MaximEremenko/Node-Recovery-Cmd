@@ -105,7 +105,7 @@ void GF_multiply_region_w32(gf_t* gf, uint8_t* src, uint8_t* dest, gf_val_32_t v
 	uint8_t high[4][16];
 //	gf_region_data rd;
 
-	__m128i  mask, ta, tb, ti, tpl, tph, tta, ttb, shuffler, unshuffler, lmask;
+	__m256i  mask, ta, tb, ti, tpl, tph, tta, ttb, shuffler, unshuffler, lmask;
 
 	if (val == 0) { return; }
 	if (val == 1) { gf_multby_one_ex(src, dest); return; }
@@ -125,63 +125,63 @@ void GF_multiply_region_w32(gf_t* gf, uint8_t* src, uint8_t* dest, gf_val_32_t v
 	d64 = (uint64_t*)dest;
 	top64 = (uint64_t*)(dest + 512);
 
-	mask = _mm_set1_epi8(0x0f);
-	lmask = _mm_set1_epi16(0xff);
+	mask = _mm256_set1_epi8(0x0f);
+	lmask = _mm256_set1_epi16(0xff);
 
 
-	const __m128i thigh_0 = _mm_loadu_si128(&highTable[val][0]);
-	const __m128i thigh_1 = _mm_loadu_si128(&highTable[val][1]);
-	const __m128i thigh_2 = _mm_loadu_si128(&highTable[val][2]);
-	const __m128i thigh_3 = _mm_loadu_si128(&highTable[val][3]);
-	const __m128i tlow_0 = _mm_loadu_si128(&lowTable[val][0]);
-	const __m128i tlow_1 = _mm_loadu_si128(&lowTable[val][1]);
-	const __m128i tlow_2 = _mm_loadu_si128(&lowTable[val][2]);
-	const __m128i tlow_3 = _mm_loadu_si128(&lowTable[val][3]);
+	const __m256i thigh_0 = _mm256_loadu2_m128i(&highTable[val][0], &highTable[val][0]);
+	const __m256i thigh_1 = _mm256_loadu2_m128i(&highTable[val][1], &highTable[val][1]);
+	const __m256i thigh_2 = _mm256_loadu2_m128i(&highTable[val][2], &highTable[val][2]);
+	const __m256i thigh_3 = _mm256_loadu2_m128i(&highTable[val][3], &highTable[val][3]);
+	const __m256i tlow_0 = _mm256_loadu2_m128i(&lowTable[val][0], &lowTable[val][0]);
+	const __m256i tlow_1 = _mm256_loadu2_m128i(&lowTable[val][1], &lowTable[val][1]);
+	const __m256i tlow_2 = _mm256_loadu2_m128i(&lowTable[val][2], &lowTable[val][2]);
+	const __m256i tlow_3 = _mm256_loadu2_m128i(&lowTable[val][3], &lowTable[val][3]);
 
 	while (d64 != top64) {
 
-		ta = _mm_load_si128((__m128i*) s64);
-		tb = _mm_load_si128((__m128i*) (s64 + 2));
+		ta = _mm256_loadu_epi16(s64);
+		tb = _mm256_loadu_epi16(s64 + 4);
 
-		tta = _mm_srli_epi16(ta, 8);
-		ttb = _mm_srli_epi16(tb, 8);
+		tta = _mm256_srli_epi16(ta, 8);
+		ttb = _mm256_srli_epi16(tb, 8);
 
-		tpl = _mm_and_si128(tb, lmask);
-		tph = _mm_and_si128(ta, lmask);
+		tpl = _mm256_and_si256(tb, lmask);
+		tph = _mm256_and_si256(ta, lmask);
 
-		tb = _mm_packus_epi16(tpl, tph);
-		ta = _mm_packus_epi16(ttb, tta);
+		tb = _mm256_packus_epi16(tpl, tph);
+		ta = _mm256_packus_epi16(ttb, tta);
 
-		ti = _mm_and_si128(mask, tb);
-		tph = _mm_shuffle_epi8(thigh_0, ti);
-		tpl = _mm_shuffle_epi8(tlow_0, ti);
+		ti = _mm256_and_si256(mask, tb);
+		tph = _mm256_shuffle_epi8(thigh_0, ti);
+		tpl = _mm256_shuffle_epi8(tlow_0, ti);
 
-		tb = _mm_srli_epi16(tb, 4);
-		ti = _mm_and_si128(mask, tb);
-		tpl = _mm_xor_si128(_mm_shuffle_epi8(tlow_1, ti), tpl);
-		tph = _mm_xor_si128(_mm_shuffle_epi8(thigh_1, ti), tph);
+		tb = _mm256_srli_epi16(tb, 4);
+		ti = _mm256_and_si256(mask, tb);
+		tpl = _mm256_xor_si256(_mm256_shuffle_epi8(tlow_1, ti), tpl);
+		tph = _mm256_xor_si256(_mm256_shuffle_epi8(thigh_1, ti), tph);
 
-		ti = _mm_and_si128(mask, ta);
-		tpl = _mm_xor_si128(_mm_shuffle_epi8(tlow_2, ti), tpl);
-		tph = _mm_xor_si128(_mm_shuffle_epi8(thigh_2, ti), tph);
+		ti = _mm256_and_si256(mask, ta);
+		tpl = _mm256_xor_si256(_mm256_shuffle_epi8(tlow_2, ti), tpl);
+		tph = _mm256_xor_si256(_mm256_shuffle_epi8(thigh_2, ti), tph);
 
-		ta = _mm_srli_epi16(ta, 4);
-		ti = _mm_and_si128(mask, ta);
-		tpl = _mm_xor_si128(_mm_shuffle_epi8(tlow_3, ti), tpl);
-		tph = _mm_xor_si128(_mm_shuffle_epi8(thigh_3, ti), tph);
+		ta = _mm256_srli_epi16(ta, 4);
+		ti = _mm256_and_si256(mask, ta);
+		tpl = _mm256_xor_si256(_mm256_shuffle_epi8(tlow_3, ti), tpl);
+		tph = _mm256_xor_si256(_mm256_shuffle_epi8(thigh_3, ti), tph);
 
-		ta = _mm_unpackhi_epi8(tpl, tph);
-		tb = _mm_unpacklo_epi8(tpl, tph);
+		ta = _mm256_unpackhi_epi8(tpl, tph);
+		tb = _mm256_unpacklo_epi8(tpl, tph);
 
-		tta = _mm_load_si128((__m128i*) d64);
-		ta = _mm_xor_si128(ta, tta);
-		ttb = _mm_load_si128((__m128i*) (d64 + 2));
-		tb = _mm_xor_si128(tb, ttb);
-		_mm_store_si128((__m128i*)d64, ta);
-		_mm_store_si128((__m128i*)(d64 + 2), tb);
+		tta = _mm256_loadu_epi16((__m128i*) d64);
+		ta = _mm256_xor_si256(ta, tta);
+		ttb = _mm256_loadu_epi16((__m128i*) (d64 + 4));
+		tb = _mm256_xor_si256(tb, ttb);
+		_mm256_storeu_epi16((__m128i*)d64, ta);
+		_mm256_storeu_epi16((__m128i*)(d64 + 4), tb);
 
-		d64 += 4;
-		s64 += 4;
+		d64 += 8;
+		s64 += 8;
 
 	}
 
