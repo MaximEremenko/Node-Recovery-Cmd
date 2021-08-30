@@ -123,9 +123,6 @@ void GF_multiply_region_w32(gf_t* gf, uint8_t* src, uint8_t* dest, gf_val_32_t v
 	struct gf_w16_logtable_data* ltd;
 	ltd = (struct gf_w16_logtable_data*)((gf_internal_t*)gf->scratch)->private;
 
-	// Нам гарантировано, что val != 0 , так как это случай обрабатывается отдельно
-	int logVal = (int)ltd->log_tbl[val];
-
 	s64 = (uint64_t*)src;
 	d64 = (uint64_t*)dest;
 	top64 = (uint64_t*)(dest + 512);

@@ -325,27 +325,30 @@ unsigned int tempAIdxCounter[2400];
 int tempKCounter[2400];
 int tempJCointer[2400];
 
+const __m128i ZeroFlagInvX4 = _mm_set1_epi16(~ZeroFlag);
 
-inline fe_type dot4(LogFieldElement* x, LogFieldElement* y)
+inline FieldElement dot4(LogFieldElement* x, LogFieldElement* y)
 {
     __m128i vx, vy;
     vx = _mm_loadu_si128((__m128i*)x);
     vy = _mm_loadu_si128((__m128i*)y);
 
     const __m128i logProduct = _mm_add_epi32(vx, vy);
+    const __m128i logProductIndex = _mm_and_si128(logProduct, ZeroFlagInvX4);
 
-    __m128i product;
-    product.m128i_u32[0] = ALOG16[LogFieldElement::correctLog(logProduct.m128i_u32[0] & ~ZeroFlag)];
-    product.m128i_u32[1] = ALOG16[LogFieldElement::correctLog(logProduct.m128i_u32[1] & ~ZeroFlag)];
-    product.m128i_u32[2] = ALOG16[LogFieldElement::correctLog(logProduct.m128i_u32[2] & ~ZeroFlag)];
-    product.m128i_u32[3] = ALOG16[LogFieldElement::correctLog(logProduct.m128i_u32[3] & ~ZeroFlag)];
+    fe_type result1 = 0;
+    //fe_type result2 = 0;
 
-    if (logProduct.m128i_u32[0] & ZeroFlag) product.m128i_u32[0] = 0;
-    if (logProduct.m128i_u32[1] & ZeroFlag) product.m128i_u32[1] = 0;
-    if (logProduct.m128i_u32[2] & ZeroFlag) product.m128i_u32[2] = 0;
-    if (logProduct.m128i_u32[3] & ZeroFlag) product.m128i_u32[3] = 0;
+    if (!(logProduct.m128i_u32[0] & ZeroFlag))
+        result1 ^= ALOG16[LogFieldElement::correctLog(logProductIndex.m128i_u32[0])];
+    if (!(logProduct.m128i_u32[1] & ZeroFlag))
+        result1 ^= ALOG16[LogFieldElement::correctLog(logProductIndex.m128i_u32[1])];
+    if (!(logProduct.m128i_u32[2] & ZeroFlag))
+        result1 ^= ALOG16[LogFieldElement::correctLog(logProductIndex.m128i_u32[2])];
+    if (!(logProduct.m128i_u32[3] & ZeroFlag))
+        result1 ^= ALOG16[LogFieldElement::correctLog(logProductIndex.m128i_u32[3])];
 
-    return (product.m128i_u32[0] ^ product.m128i_u32[1]) ^ (product.m128i_u32[2] ^ product.m128i_u32[3]);
+    return FieldElement(result1);//^ result2);
 }
 
 
@@ -424,15 +427,10 @@ double ext_recover_4_nodes_core(unsigned int* pNodesToRecoverIdx, Node* pNodes, 
 
         vand4_inv(invMatr, FieldElement(recNodesCoeff[i][0]), FieldElement(recNodesCoeff[i][1]), FieldElement(recNodesCoeff[i][2]), FieldElement(recNodesCoeff[i][3]));
 
-        recData[0] = dot4(&invMatr[0][0], currColLog);
-        recData[1] = dot4(&invMatr[1][0], currColLog);
-        recData[2] = dot4(&invMatr[2][0], currColLog);
-        recData[3] = dot4(&invMatr[3][0], currColLog);
-
-        pNodes[pNodesToRecoverIdx[0]].setData(i, FieldElement(recData[0]));
-        pNodes[pNodesToRecoverIdx[1]].setData(i, FieldElement(recData[1]));
-        pNodes[pNodesToRecoverIdx[2]].setData(i, FieldElement(recData[2]));
-        pNodes[pNodesToRecoverIdx[3]].setData(i, FieldElement(recData[3]));
+        pNodes[pNodesToRecoverIdx[0]].setData(i, dot4(&invMatr[0][0], currColLog));
+        pNodes[pNodesToRecoverIdx[1]].setData(i, dot4(&invMatr[1][0], currColLog));
+        pNodes[pNodesToRecoverIdx[2]].setData(i, dot4(&invMatr[2][0], currColLog));
+        pNodes[pNodesToRecoverIdx[3]].setData(i, dot4(&invMatr[3][0], currColLog));
 
     }
     auto innerTime2End = chrono::high_resolution_clock::now();
@@ -550,8 +548,8 @@ double ext_recover_4_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes, doubl
         }
     }
 
-  //  for (int x = 0; x < 10; ++x)
-    //    ext_recover_4_nodes_core(pNodesToRecoverIdx, pNodes, lambdasIdx, pCurrData, inneTime1, innerTime2);
+//    for (int x = 0; x < 10; ++x)
+  //   ext_recover_4_nodes_core(pNodesToRecoverIdx, pNodes, lambdasIdx, pCurrData, inneTime1, innerTime2);
 
     return ext_recover_4_nodes_core(pNodesToRecoverIdx, pNodes, lambdasIdx, pCurrData, inneTime1, innerTime2);
 }
