@@ -37,8 +37,13 @@ GF_w16_log_multiply_by_log(struct gf_w16_logtable_data* ltd, gf_val_32_t a, int 
 	return ltd->antilog_tbl[(int)ltd->log_tbl[a] + log_b];
 }
 
-__m128i lowTable[65536][4];
-__m128i highTable[65536][4];
+struct HiLoTableData
+{
+	__m128i highTable[4];
+	__m128i lowTable[4];
+};
+
+struct HiLoTableData highLowTable[65536];
 
 void calcHiLoTables(gf_t* gf)
 {
@@ -72,8 +77,8 @@ void calcHiLoTables(gf_t* gf)
 		}
 
 		for (int i = 0; i < 4; i++) {
-			lowTable[val][i] = _mm_loadu_si128((__m128i*)low[i]);
-			highTable[val][i] = _mm_loadu_si128((__m128i*)high[i]);
+			highLowTable[val].lowTable[i] = _mm_loadu_si128((__m128i*)low[i]);
+			highLowTable[val].highTable[i] = _mm_loadu_si128((__m128i*)high[i]);
 		}
 	}
 }
@@ -129,14 +134,14 @@ void GF_multiply_region_w32(gf_t* gf, uint8_t* src, uint8_t* dest, gf_val_32_t v
 	lmask = _mm256_set1_epi16(0xff);
 
 
-	const __m256i thigh_0 = _mm256_loadu2_m128i(&highTable[val][0], &highTable[val][0]);
-	const __m256i thigh_1 = _mm256_loadu2_m128i(&highTable[val][1], &highTable[val][1]);
-	const __m256i thigh_2 = _mm256_loadu2_m128i(&highTable[val][2], &highTable[val][2]);
-	const __m256i thigh_3 = _mm256_loadu2_m128i(&highTable[val][3], &highTable[val][3]);
-	const __m256i tlow_0 = _mm256_loadu2_m128i(&lowTable[val][0], &lowTable[val][0]);
-	const __m256i tlow_1 = _mm256_loadu2_m128i(&lowTable[val][1], &lowTable[val][1]);
-	const __m256i tlow_2 = _mm256_loadu2_m128i(&lowTable[val][2], &lowTable[val][2]);
-	const __m256i tlow_3 = _mm256_loadu2_m128i(&lowTable[val][3], &lowTable[val][3]);
+	const __m256i thigh_0 = _mm256_loadu2_m128i(&highLowTable[val].highTable[0], &highLowTable[val].highTable[0]);
+	const __m256i thigh_1 = _mm256_loadu2_m128i(&highLowTable[val].highTable[1], &highLowTable[val].highTable[1]);
+	const __m256i thigh_2 = _mm256_loadu2_m128i(&highLowTable[val].highTable[2], &highLowTable[val].highTable[2]);
+	const __m256i thigh_3 = _mm256_loadu2_m128i(&highLowTable[val].highTable[3], &highLowTable[val].highTable[3]);
+	const __m256i tlow_0 = _mm256_loadu2_m128i(&highLowTable[val].lowTable[0], &highLowTable[val].lowTable[0]);
+	const __m256i tlow_1 = _mm256_loadu2_m128i(&highLowTable[val].lowTable[1], &highLowTable[val].lowTable[1]);
+	const __m256i tlow_2 = _mm256_loadu2_m128i(&highLowTable[val].lowTable[2], &highLowTable[val].lowTable[2]);
+	const __m256i tlow_3 = _mm256_loadu2_m128i(&highLowTable[val].lowTable[3], &highLowTable[val].lowTable[3]);
 
 	while (d64 != top64) {
 
