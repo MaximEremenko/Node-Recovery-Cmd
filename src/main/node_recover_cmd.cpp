@@ -253,6 +253,33 @@ void vand3_inv(LogFieldElement B[3][3], FieldElement a, FieldElement b, FieldEle
     B[2][2] = w;
 }
 
+inline void vand3_inv_dot(FieldElement *result0, FieldElement * result1, FieldElement *result2,
+               FieldElement a, FieldElement b, FieldElement c,
+               const fe_type * currCol)
+{
+    const LogFieldElement ab = (a + b).toLog();
+    const LogFieldElement ac = (a + c).toLog();
+    const LogFieldElement bc = (b + c).toLog();
+
+    LogFieldElement w = ~(ab * ac);
+
+    const LogFieldElement currCol0 = FieldElement(currCol[0]).toLog();
+    const LogFieldElement currCol1 = FieldElement(currCol[1]).toLog();
+    const LogFieldElement currCol2 = FieldElement(currCol[2]).toLog();
+
+    *result0 = (w * b * c * currCol0).toNormal() + (w * currCol1 * bc).toNormal() + (w  * currCol2).toNormal();
+
+    w = ~(ab * bc);
+
+    *result1 = (w * a * c * currCol0).toNormal() + (w * ac * currCol1).toNormal() + (w * currCol2).toNormal();
+
+    w = ~(ac * bc);
+
+    *result2 = (w * a * b * currCol0).toNormal() + (w * ab * currCol1).toNormal() + (w * currCol2).toNormal();
+}
+
+
+
 // Inversion of Vandermond matrix of size 2x2
 void vand2_inv(LogFieldElement B[2][2], FieldElement a, FieldElement b)
 {
@@ -264,6 +291,24 @@ void vand2_inv(LogFieldElement B[2][2], FieldElement a, FieldElement b)
     B[1][0] = a.toLog() * w0;
     B[1][1] = w0;
 }
+
+inline fe_type dot2(LogFieldElement* x, LogFieldElement* y)
+{
+    return ((x[0] * y[0]).toNormal() + (x[1] * y[1]).toNormal()).getElement();
+}
+
+
+inline void vand2_inv_dot(FieldElement *result0, FieldElement *result1, FieldElement a, FieldElement b, const fe_type * const currCol)
+{
+    const LogFieldElement w0 = ~(a + b).toLog();
+
+    const LogFieldElement w0_currCol0 = w0 * FieldElement(currCol[0]).toLog();
+    const FieldElement w0_currCol1 = (w0 * FieldElement(currCol[1]).toLog()).toNormal();
+
+    *result0 = (b.toLog() * w0_currCol0).toNormal() + w0_currCol1;
+    *result1 = (a.toLog() * w0_currCol0).toNormal() + w0_currCol1;
+}
+
 
 // Retrieve positions and lambdas ids for current A id and subblock number (for 1 node recovery)
 void curr_pos_get(unsigned int* pos, unsigned int* lambda_ids, int curr_matr_A_id, int curr_sub_block)
@@ -337,7 +382,6 @@ inline FieldElement dot4(LogFieldElement* x, LogFieldElement* y)
     const __m128i logProductIndex = _mm_and_si128(logProduct, ZeroFlagInvX4);
 
     fe_type result1 = 0;
-    //fe_type result2 = 0;
 
     if (!(logProduct.m128i_u32[0] & ZeroFlag))
         result1 ^= ALOG16[LogFieldElement::correctLog(logProductIndex.m128i_u32[0])];
@@ -348,7 +392,7 @@ inline FieldElement dot4(LogFieldElement* x, LogFieldElement* y)
     if (!(logProduct.m128i_u32[3] & ZeroFlag))
         result1 ^= ALOG16[LogFieldElement::correctLog(logProductIndex.m128i_u32[3])];
 
-    return FieldElement(result1);//^ result2);
+    return FieldElement(result1);
 }
 
 
@@ -851,7 +895,11 @@ double ext_recover_3_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
 //        GF.multiply_region.w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
     }
 
-    for (i = 0; i < 1024; ++i)
+    FieldElement *nodeToRecover0 = pNodes[pNodesToRecoverIdx[0]].getData();
+    FieldElement* nodeToRecover1 = pNodes[pNodesToRecoverIdx[1]].getData();
+    FieldElement* nodeToRecover2 = pNodes[pNodesToRecoverIdx[2]].getData();
+
+    for (i = 0; i < 1024; ++i, ++nodeToRecover0, ++nodeToRecover1, ++nodeToRecover2)
     {
         for (j = 0; j < 3; ++j)
             currCol[j] = 0;
@@ -878,9 +926,11 @@ double ext_recover_3_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
             ++sameLambdaResCounter[AIdx][lambdaId];
         }
 
-        vand3_inv(invMatr, FieldElement(recNodesCoeff[i][0]), FieldElement(recNodesCoeff[i][1]), FieldElement(recNodesCoeff[i][2]));
+        vand3_inv_dot(nodeToRecover0, nodeToRecover1, nodeToRecover2, 
+                      FieldElement(recNodesCoeff[i][0]), FieldElement(recNodesCoeff[i][1]), FieldElement(recNodesCoeff[i][2]),
+                      currCol);
 
-        recData[0] = (invMatr[0][0] * currCol[0]).toNormal().getElement();
+/*        recData[0] = (invMatr[0][0] * currCol[0]).toNormal().getElement();
         recData[0] ^= (invMatr[0][1] * currCol[1]).toNormal().getElement();
         recData[0] ^= (invMatr[0][2] * currCol[2]).toNormal().getElement();
 
@@ -894,7 +944,7 @@ double ext_recover_3_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
 
         pNodes[pNodesToRecoverIdx[0]].setData(i, FieldElement(recData[0]));
         pNodes[pNodesToRecoverIdx[1]].setData(i, FieldElement(recData[1]));
-        pNodes[pNodesToRecoverIdx[2]].setData(i, FieldElement(recData[2]));
+        pNodes[pNodesToRecoverIdx[2]].setData(i, FieldElement(recData[2]));*/
 
     }
 
@@ -1039,11 +1089,6 @@ double recover_3_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
 }
 
 
-inline fe_type dot2(LogFieldElement* x, LogFieldElement* y)
-{
-    return ((x[0] * y[0]).toNormal() + (x[1] * y[1]).toNormal()).getElement();
-}
-
 // 2 nodes recovery procedure extended
 double ext_recover_2_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
 {
@@ -1052,8 +1097,6 @@ double ext_recover_2_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
     unsigned int AIdx = 0, lambdaId = 0, nodeId = 0;
     fe_type* pCurrData = 0, * pCurrRes = 0;
     fe_type currCol[2] = { 0, 0 };
-    fe_type recData[2] = { 0, 0 };
-    LogFieldElement invMatr[2][2];
 
     for (i = 0; i < 4; ++i)
         for (j = 0; j < 154; ++j)
@@ -1146,7 +1189,10 @@ double ext_recover_2_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
         //GF.multiply_region.w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
     }
 
-    for (i = 0; i < 1024; ++i)
+    FieldElement* nodeToRecover0 = pNodes[pNodesToRecoverIdx[0]].getData();
+    FieldElement* nodeToRecover1 = pNodes[pNodesToRecoverIdx[1]].getData();
+
+    for (i = 0; i < 1024; ++i, ++nodeToRecover0, ++nodeToRecover1)
     {
         for (j = 0; j < 2; ++j)
             currCol[j] = 0;
@@ -1170,20 +1216,9 @@ double ext_recover_2_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
             ++sameLambdaResCounter[AIdx][lambdaId];
         }
 
-        vand2_inv(invMatr, FieldElement(recNodesCoeff[i][0]), FieldElement(recNodesCoeff[i][1]));
-
-        LogFieldElement logCurrCol[2];
-        logCurrCol[0] = FieldElement(currCol[0]).toLog();
-        logCurrCol[1] = FieldElement(currCol[1]).toLog();
-
-        recData[0] = dot2(&invMatr[0][0], logCurrCol); //  (invMatr[0][0] * logCurrCol[0]).toNormal().getElement();
-        // recData[0] ^= (invMatr[0][1] * logCurrCol[1]).toNormal().getElement();
-
-        recData[1] = dot2(&invMatr[1][0], logCurrCol);
-//        recData[1] ^= (invMatr[1][1] * logCurrCol[1]).toNormal().getElement();
-
-        pNodes[pNodesToRecoverIdx[0]].setData(i, FieldElement(recData[0]));
-        pNodes[pNodesToRecoverIdx[1]].setData(i, FieldElement(recData[1]));
+        vand2_inv_dot(nodeToRecover0, nodeToRecover1,
+                      FieldElement(recNodesCoeff[i][0]), FieldElement(recNodesCoeff[i][1]), 
+                      currCol);
     }
 
     auto  end_time = chrono::high_resolution_clock::now();
