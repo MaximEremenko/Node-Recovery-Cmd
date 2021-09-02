@@ -171,9 +171,7 @@ public:
     {
         const int corrected = (x & 0xFFFF) + (x >> 16);
 
-        if (corrected >= 0xFFFF)
-            return corrected - 0xFFFF;
-        return corrected;
+        return corrected >= 0xFFFF ? corrected - 0xFFFF : corrected;
 
 //        while (x >= 0xFFFF) x -= 0xFFFF;
 //        return x % 0xFFFF;
