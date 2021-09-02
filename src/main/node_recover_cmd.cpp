@@ -1538,14 +1538,13 @@ int main()
     }
     LOG16_UI[0] = ZeroInit;
 
-    for (int i = 0, e = 0; i <= 0x1FFFF && e < 10; ++i)
+    for (int i = 0, e = 0; i <= 0xFFFF * 6 && e < 10; ++i)
     {
-        if (LOG16[ALOG16[i]] != LogFieldElement::correctLog(i))
+        if ( i % 0xFFFF != LogFieldElement::correctLog(i))
         {
-            printf("Logspace correction error: i = %x, ALOG[i] = %x, LOG[ALOG[i]] = %x != corrected(i) = %x\n",
+            printf("Logspace correction error: i = %x, i mod 0xFFFF = %x != corrected(i) = %x\n",
                 i,
-                ALOG16[i],
-                LOG16[ALOG16[i]],
+                i % 0xFFFF,
                 LogFieldElement::correctLog(i));
             ++e;
         }

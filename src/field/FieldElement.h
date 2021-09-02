@@ -169,8 +169,14 @@ public:
 
     static inline int correctLog(int x)
     {
+        const int corrected = (x & 0xFFFF) + (x >> 16);
+
+        if (corrected >= 0xFFFF)
+            return corrected - 0xFFFF;
+        return corrected;
+
 //        while (x >= 0xFFFF) x -= 0xFFFF;
-        return x % 0xFFFF;
+//        return x % 0xFFFF;
         //return x >= 0xFFFF ? x - 0xFFFF : x;
         //return (x & 0xFFFF) + (x >> 16);
     }
