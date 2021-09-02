@@ -169,8 +169,8 @@ public:
 
     static inline int correctLog(int x)
     {
-        while (x >= 0xFFFF) x -= 0xFFFF;
-        return x;
+//        while (x >= 0xFFFF) x -= 0xFFFF;
+        return x % 0xFFFF;
         //return x >= 0xFFFF ? x - 0xFFFF : x;
         //return (x & 0xFFFF) + (x >> 16);
     }
