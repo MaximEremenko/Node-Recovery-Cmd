@@ -25,7 +25,12 @@ public:
     FieldElement getData(unsigned int i) {
         return m_data[i];
     }
-    
+
+    FieldElement* getData() {
+        return m_data;
+    }
+
+
     void setData(unsigned int idx, FieldElement data) {
         m_data[idx] = data;
     }

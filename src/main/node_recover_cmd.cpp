@@ -851,6 +851,10 @@ double ext_recover_3_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
 //        GF.multiply_region.w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
     }
 
+    FieldElement* const nodeToRecover0 = pNodes[pNodesToRecoverIdx[0]].getData();
+    FieldElement* const nodeToRecover1 = pNodes[pNodesToRecoverIdx[1]].getData();
+    FieldElement* const nodeToRecover2 = pNodes[pNodesToRecoverIdx[2]].getData();
+
     for (i = 0; i < 1024; ++i)
     {
         for (j = 0; j < 3; ++j)
@@ -880,22 +884,22 @@ double ext_recover_3_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
 
         vand3_inv(invMatr, FieldElement(recNodesCoeff[i][0]), FieldElement(recNodesCoeff[i][1]), FieldElement(recNodesCoeff[i][2]));
 
-        recData[0] = (invMatr[0][0] * currCol[0]).toNormal().getElement();
-        recData[0] ^= (invMatr[0][1] * currCol[1]).toNormal().getElement();
-        recData[0] ^= (invMatr[0][2] * currCol[2]).toNormal().getElement();
+        recData[0] = (invMatr[0][0] * currCol[0]).toNormalMod().getElement();
+        recData[1] = (invMatr[1][0] * currCol[0]).toNormalMod().getElement();
+        recData[2] = (invMatr[2][0] * currCol[0]).toNormalMod().getElement();
 
-        recData[1] = (invMatr[1][0] * currCol[0]).toNormal().getElement();
-        recData[1] ^= (invMatr[1][1] * currCol[1]).toNormal().getElement();
-        recData[1] ^= (invMatr[1][2] * currCol[2]).toNormal().getElement();
+        recData[0] ^= (invMatr[0][1] * currCol[1]).toNormalMod().getElement();
+        recData[1] ^= (invMatr[1][2] * currCol[2]).toNormalMod().getElement();
+        recData[2] ^= (invMatr[2][2] * currCol[2]).toNormalMod().getElement();
 
-        recData[2] = (invMatr[2][0] * currCol[0]).toNormal().getElement();
-        recData[2] ^= (invMatr[2][1] * currCol[1]).toNormal().getElement();
-        recData[2] ^= (invMatr[2][2] * currCol[2]).toNormal().getElement();
+        recData[0] ^= (invMatr[0][2] * currCol[2]).toNormalMod().getElement();
+        recData[1] ^= (invMatr[1][1] * currCol[1]).toNormalMod().getElement();
+        recData[2] ^= (invMatr[2][1] * currCol[1]).toNormalMod().getElement();
 
-        pNodes[pNodesToRecoverIdx[0]].setData(i, FieldElement(recData[0]));
-        pNodes[pNodesToRecoverIdx[1]].setData(i, FieldElement(recData[1]));
-        pNodes[pNodesToRecoverIdx[2]].setData(i, FieldElement(recData[2]));
 
+        nodeToRecover0[i] = recData[0];
+        nodeToRecover1[i] = recData[1];
+        nodeToRecover2[i] = recData[2];
     }
 
     auto  end_time = chrono::high_resolution_clock::now();
@@ -1146,6 +1150,9 @@ double ext_recover_2_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
         //GF.multiply_region.w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
     }
 
+    FieldElement* const nodeToRecover0 = pNodes[pNodesToRecoverIdx[0]].getData();
+    FieldElement* const nodeToRecover1 = pNodes[pNodesToRecoverIdx[1]].getData();
+
     for (i = 0; i < 1024; ++i)
     {
         for (j = 0; j < 2; ++j)
@@ -1176,14 +1183,20 @@ double ext_recover_2_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
         logCurrCol[0] = FieldElement(currCol[0]).toLog();
         logCurrCol[1] = FieldElement(currCol[1]).toLog();
 
-        recData[0] = dot2(&invMatr[0][0], logCurrCol); //  (invMatr[0][0] * logCurrCol[0]).toNormal().getElement();
-        // recData[0] ^= (invMatr[0][1] * logCurrCol[1]).toNormal().getElement();
+        //recData[0] = dot2(&invMatr[0][0], logCurrCol);
+        ///recData[1] = dot2(&invMatr[1][0], logCurrCol);
 
-        recData[1] = dot2(&invMatr[1][0], logCurrCol);
-//        recData[1] ^= (invMatr[1][1] * logCurrCol[1]).toNormal().getElement();
+        recData[0] = (invMatr[0][0] * logCurrCol[0]).toNormal().getElement();
+        recData[1] = (invMatr[1][0] * logCurrCol[0]).toNormal().getElement();
 
-        pNodes[pNodesToRecoverIdx[0]].setData(i, FieldElement(recData[0]));
-        pNodes[pNodesToRecoverIdx[1]].setData(i, FieldElement(recData[1]));
+        recData[0] ^= (invMatr[0][1] * logCurrCol[1]).toNormal().getElement();
+        recData[1] ^= (invMatr[1][1] * logCurrCol[1]).toNormal().getElement();
+
+        nodeToRecover0[i] = recData[0];
+        nodeToRecover1[i] = recData[1];
+
+//        pNodes[pNodesToRecoverIdx[0]].setData(i, FieldElement(recData[0]));
+//        pNodes[pNodesToRecoverIdx[1]].setData(i, FieldElement(recData[1]));
     }
 
     auto  end_time = chrono::high_resolution_clock::now();

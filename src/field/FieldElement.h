@@ -135,6 +135,25 @@ public:
         return FieldElement(ALOG16[correctLog(m_iLogElement & ~ZeroFlag)]);
     }
 
+    FieldElement toNormalMod() const
+    {
+        if (m_iLogElement & ZeroFlag)
+        {
+            return FieldElement(0);
+        }
+        /*printf("toNormal: logElem = %x, index = %x, normal = %x\n",
+            m_iLogElement,
+            m_iLogElement & 0x1FFFF,
+            ALOG16[m_iLogElement & 0x1FFFF]); */
+            //        if ((m_iLogElement & ~ZeroFlag) > maxLog)
+                    //{
+                      //  maxLog = (m_iLogElement & ~ZeroFlag);
+                    //}
+
+        return FieldElement(ALOG16[correctLogMod(m_iLogElement & ~ZeroFlag)]);
+    }
+
+
     LogFieldElement operator * (const LogFieldElement other) const
     {
         return  m_iLogElement + other.m_iLogElement;
@@ -176,8 +195,14 @@ public:
 //        while (x >= 0xFFFF) x -= 0xFFFF;
 //        return x % 0xFFFF;
         //return x >= 0xFFFF ? x - 0xFFFF : x;
-        //return (x & 0xFFFF) + (x >> 16);
     }
+
+    static inline int correctLogMod(int x)
+    {
+         return x % 0xFFFF;
+    }
+
+
 
 public:
     static LogFieldElement logOneElement;
