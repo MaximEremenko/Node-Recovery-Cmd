@@ -352,7 +352,7 @@ inline FieldElement dot4(LogFieldElement* x, LogFieldElement* y)
 }
 
 
-double ext_recover_4_nodes_core(unsigned int* pNodesToRecoverIdx, Node* pNodes, int lambdasIdx[5], fe_type* pCurrData, double* inneTime1, double* innerTime2)
+double ext_recover_4_nodes_core(unsigned int* pNodesToRecoverIdx, Node* pNodes, int lambdasIdx[5], fe_type* pCurrData, double* inneTime1, double* innerTime2, struct HiLoTableData *hiLoData)
 {
     uint8_t dstTest[512];
 
@@ -369,7 +369,7 @@ double ext_recover_4_nodes_core(unsigned int* pNodesToRecoverIdx, Node* pNodes, 
 
     for (int i = 0; i < 2400; ++i)
     {
-        GF_multiply_region_w32(&GF, dataSrc[i], resDst[i], currCoeff[i]);
+        GF_multiply_region_w32_prepared(&GF, dataSrc[i], resDst[i], currCoeff[i], hiLoData + i);
 //                GF.multiply_region.w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
 
 
@@ -548,10 +548,19 @@ double ext_recover_4_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes, doubl
         }
     }
 
-//    for (int x = 0; x < 10; ++x)
-  //   ext_recover_4_nodes_core(pNodesToRecoverIdx, pNodes, lambdasIdx, pCurrData, inneTime1, innerTime2);
 
-    return ext_recover_4_nodes_core(pNodesToRecoverIdx, pNodes, lambdasIdx, pCurrData, inneTime1, innerTime2);
+    struct HiLoTableData hiLoData[2400];
+
+    for (i = 0; i < 2400; ++i)
+    {
+        hiLoData[i] = highLowTable[currCoeff[i]];
+    }
+
+    //    for (int x = 0; x < 10; ++x)
+      //   ext_recover_4_nodes_core(pNodesToRecoverIdx, pNodes, lambdasIdx, pCurrData, inneTime1, innerTime2);
+
+
+    return ext_recover_4_nodes_core(pNodesToRecoverIdx, pNodes, lambdasIdx, pCurrData, inneTime1, innerTime2, hiLoData);
 }
 
 // Definitions of global auxiliary variables for 2, 3 and 4 nodes recovery procedures
@@ -843,11 +852,19 @@ double ext_recover_3_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
         }
     }
 
+    struct HiLoTableData hiLoData[1812];
+
+    for (i = 0; i < 1812; ++i)
+    {
+        hiLoData[i] = highLowTable[currCoeff[i]];
+    }
+
+
     auto start_time = chrono::high_resolution_clock::now();
 
     for (i = 0; i < 1812; ++i)
     {
-        GF_multiply_region_w32(&GF, dataSrc[i], resDst[i], currCoeff[i]);
+        GF_multiply_region_w32_prepared(&GF, dataSrc[i], resDst[i], currCoeff[i], hiLoData + i);
 //        GF.multiply_region.w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
     }
 
@@ -1142,11 +1159,19 @@ double ext_recover_2_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
         }
     }
 
+    struct HiLoTableData hiLoData[1216];
+
+    for (i = 0; i < 1216; ++i)
+    {
+        hiLoData[i] = highLowTable[currCoeff[i]];
+    }
+
+
     auto start_time = chrono::high_resolution_clock::now();
 
     for (i = 0; i < 1216; ++i)
     {
-        GF_multiply_region_w32(&GF, dataSrc[i], resDst[i], currCoeff[i]);
+        GF_multiply_region_w32_prepared(&GF, dataSrc[i], resDst[i], currCoeff[i], hiLoData + i);
         //GF.multiply_region.w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
     }
 
