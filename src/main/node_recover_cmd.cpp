@@ -192,8 +192,8 @@ void vand4_inv(LogFieldElement B[4][4], FieldElement a, FieldElement b, FieldEle
     const LogFieldElement cLog = c.toLog();
     const LogFieldElement dLog = d.toLog();
     const LogFieldElement a_b_c_d = (a.toLog() * b.toLog()) * (cLog * dLog);
-    const LogFieldElement c_c = cLog * cLog;
-    const LogFieldElement d_d = dLog * dLog;
+    const LogFieldElement c_c = (cLog * cLog);
+    const FieldElement d_d = (dLog * dLog).toNormal();
 
     const LogFieldElement inva = ~a.toLog();
     const LogFieldElement invb = ~b.toLog();
@@ -206,17 +206,17 @@ void vand4_inv(LogFieldElement B[4][4], FieldElement a, FieldElement b, FieldEle
     const LogFieldElement w3 = ~(adLog * bdLog * cdLog);
 
     B[0][0] = (w0 * a_b_c_d * inva);
-    B[0][1] = (w0 * ((bdLog * cdLog).toNormal() + d_d.toNormal()));
+    B[0][1] = (w0 * ((bdLog * cdLog).toNormal() + d_d));
     B[0][2] = (w0 * (abcd + a));
     B[0][3] = w0;
 
     B[1][0] = (w1 * a_b_c_d * invb);
-    B[1][1] = (w1 * ((adLog * cdLog).toNormal() + d_d.toNormal()));
+    B[1][1] = (w1 * ((adLog * cdLog).toNormal() + d_d));
     B[1][2] = (w1 * (abcd + b));
     B[1][3] = w1;
 
     B[2][0] = ((w2 * a_b_c_d) * invc);
-    B[2][1] = (w2 * ((adLog * bdLog).toNormal() + d_d.toNormal()));
+    B[2][1] = (w2 * ((adLog * bdLog).toNormal() + d_d));
     B[2][2] = (w2 * (abcd + c));
     B[2][3] = w2;
 
@@ -557,7 +557,7 @@ double ext_recover_4_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes, doubl
     }
 
     //    for (int x = 0; x < 10; ++x)
-      //   ext_recover_4_nodes_core(pNodesToRecoverIdx, pNodes, lambdasIdx, pCurrData, inneTime1, innerTime2);
+      // ext_recover_4_nodes_core(pNodesToRecoverIdx, pNodes, lambdasIdx, pCurrData, inneTime1, innerTime2, hiLoData);
 
 
     return ext_recover_4_nodes_core(pNodesToRecoverIdx, pNodes, lambdasIdx, pCurrData, inneTime1, innerTime2, hiLoData);
