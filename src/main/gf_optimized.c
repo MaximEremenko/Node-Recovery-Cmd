@@ -92,8 +92,8 @@ void GF_multiply_region_w32_prepared(gf_t* gf, __m256i* src, __m256i* dest, gf_v
 
 	__m256i  mask, ta, tb, ti, tpl, tph, tta, ttb, lmask;
 
-	if (val == 0) { return; }
-	if (val == 1) { gf_multby_one_ex(src, dest); return; }
+//	if (val == 0) { return; }
+//	if (val == 1) { gf_multby_one_ex(src, dest); return; }
 
 	mask = _mm256_set1_epi8(0x0f);
 	lmask = _mm256_set1_epi16(0xff);

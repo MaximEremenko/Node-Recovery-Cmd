@@ -15,6 +15,11 @@ struct HiLoTableData
 
 extern struct HiLoTableData highLowTable[65536];
 
+void gf_multby_one_ex(__m256i* src, __m256i* dest);
+
 void GF_multiply_region_w32_prepared(gf_t* gf, __m256i* src, __m256i* dest, gf_val_32_t val, struct HiLoTableData* table);
+#define GF_multiply_region_w32_dispatch(gf, src, dest, val, table)  \
+	if(val == 1) gf_multby_one_ex(src, dest);	\
+	else if(val > 1) GF_multiply_region_w32_prepared(gf, src, dest, val, table)
 
 void calcHiLoTables(gf_t* gf);
