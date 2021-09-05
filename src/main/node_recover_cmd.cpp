@@ -369,7 +369,7 @@ double ext_recover_4_nodes_core(unsigned int* pNodesToRecoverIdx, Node* pNodes, 
 
     for (int i = 0; i < 2400; ++i)
     {
-        GF_multiply_region_w32_prepared(&GF, dataSrc[i], resDst[i], currCoeff[i], hiLoData + i);
+        GF_multiply_region_w32_prepared(&GF, (__m256i*)dataSrc[i], (__m256i*)resDst[i], currCoeff[i], hiLoData + i);
 //                GF.multiply_region.w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
 
 
@@ -864,7 +864,7 @@ double ext_recover_3_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
 
     for (i = 0; i < 1812; ++i)
     {
-        GF_multiply_region_w32_prepared(&GF, dataSrc[i], resDst[i], currCoeff[i], hiLoData + i);
+        GF_multiply_region_w32_prepared(&GF, (__m256i*)dataSrc[i], (__m256i*)resDst[i], currCoeff[i], hiLoData + i);
 //        GF.multiply_region.w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
     }
 
@@ -1171,7 +1171,7 @@ double ext_recover_2_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
 
     for (i = 0; i < 1216; ++i)
     {
-        GF_multiply_region_w32_prepared(&GF, dataSrc[i], resDst[i], currCoeff[i], hiLoData + i);
+        GF_multiply_region_w32_prepared(&GF, (__m256i*)dataSrc[i], (__m256i*)resDst[i], currCoeff[i], hiLoData + i);
         //GF.multiply_region.w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
     }
 
