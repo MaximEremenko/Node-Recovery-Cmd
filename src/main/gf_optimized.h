@@ -15,11 +15,20 @@ struct HiLoTableData
 
 extern struct HiLoTableData highLowTable[65536];
 
-void gf_multby_one_ex(__m256i* src, __m256i* dest);
+void gf_multby_one_ex_128(__m256i* src, __m256i* dest);
 
-void GF_multiply_region_w32_prepared(gf_t* gf, __m256i* src, __m256i* dest, gf_val_32_t val, struct HiLoTableData* table);
-#define GF_multiply_region_w32_dispatch(gf, src, dest, val, table)  \
-	if(val == 1) gf_multby_one_ex(src, dest);	\
-	else if(val > 1) GF_multiply_region_w32_prepared(gf, src, dest, val, table)
+void GF_multiply_region_w32_prepared_128(gf_t* gf, __m256i* src, __m256i* dest, struct HiLoTableData* table);
+#define GF_multiply_region_w32_dispatch_128(gf, src, dest, val, table)  \
+	if(val == 1) gf_multby_one_ex_128(src, dest);	\
+	else if(val > 1) GF_multiply_region_w32_prepared_128(gf, src, dest, table)
+
+
+void gf_multby_one_ex_512(__m256i* src, __m256i* dest);
+
+void GF_multiply_region_w32_prepared_512(gf_t* gf, __m256i* src, __m256i* dest, struct HiLoTableData* table);
+#define GF_multiply_region_w32_dispatch_512(gf, src, dest, val, table)  \
+	if(val == 1) gf_multby_one_ex_512(src, dest);	\
+	else if(val > 1) GF_multiply_region_w32_prepared_512(gf, src, dest, table)
+
 
 void calcHiLoTables(gf_t* gf);

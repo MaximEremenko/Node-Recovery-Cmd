@@ -369,7 +369,7 @@ double ext_recover_4_nodes_core(unsigned int* pNodesToRecoverIdx, Node* pNodes, 
 
     for (int i = 0; i < 2400; ++i)
     {
-        GF_multiply_region_w32_dispatch(&GF, (__m256i*)dataSrc[i], (__m256i*)resDst[i], currCoeff[i], hiLoData + i);
+        GF_multiply_region_w32_dispatch_512(&GF, (__m256i*)dataSrc[i], (__m256i*)resDst[i], currCoeff[i], hiLoData + i);
 //                GF.multiply_region.w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
 
 
@@ -864,7 +864,7 @@ double ext_recover_3_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
 
     for (i = 0; i < 1812; ++i)
     {
-        GF_multiply_region_w32_dispatch(&GF, (__m256i*)dataSrc[i], (__m256i*)resDst[i], currCoeff[i], hiLoData + i);
+        GF_multiply_region_w32_dispatch_512(&GF, (__m256i*)dataSrc[i], (__m256i*)resDst[i], currCoeff[i], hiLoData + i);
 //        GF.multiply_region.w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
     }
 
@@ -1171,7 +1171,7 @@ double ext_recover_2_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
 
     for (i = 0; i < 1216; ++i)
     {
-        GF_multiply_region_w32_dispatch(&GF, (__m256i*)dataSrc[i], (__m256i*)resDst[i], currCoeff[i], hiLoData + i);
+        GF_multiply_region_w32_dispatch_512(&GF, (__m256i*)dataSrc[i], (__m256i*)resDst[i], currCoeff[i], hiLoData + i);
         //GF.multiply_region.w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
     }
 
@@ -1526,28 +1526,68 @@ double ext_recover_1_node(unsigned int* pNodesToRecoverIdx, Node* pNodes)
         }
     }
 
-    //Recovering
+    struct HiLoTableData *hiLoDataSame = new HiLoTableData[(int)sameASameLambdaNodeCounter * 4 * 4];
 
-    auto start_time = chrono::high_resolution_clock::now();
-
+    int dataIdx = 0;
     for (i = 0; i < sameASameLambdaNodeCounter; ++i)
     {
         for (j = 0; j < 4; ++j)
         {
-            for (k = 0; k < 4; ++k)
+            for (k = 0; k < 4; ++k, ++dataIdx)
             {
-                GF.multiply_region.w32(&GF, &sameASameLambdaData[i][j][0], &sameASameLambdaRes[k][0], sameASameLambdaCoeff[i][j][k], 512, 1);
+                hiLoDataSame[dataIdx] = highLowTable[sameASameLambdaCoeff[i][j][k]];
             }
         }
     }
 
+    struct HiLoTableData* hiLoDataDiff = new HiLoTableData[(int)diffASameLambdaNodeCounter * 4 * 4];
+
+    dataIdx = 0;
     for (i = 0; i < diffASameLambdaNodeCounter; ++i)
     {
         for (j = 0; j < 4; ++j)
         {
-            for (k = 0; k < 4; ++k)
+            for (k = 0; k < 4; ++k, ++dataIdx)
             {
-                GF.multiply_region.w32(&GF, &diffASameLambdaData[i][j][0], &diffASameLambdaRes[diffALambdaIdArray[i]][j][k][0], diffASameLambdaCoeff[i][j][k], 128, 1);
+                hiLoDataDiff[dataIdx] = highLowTable[diffASameLambdaCoeff[i][j][k]];
+            }
+        }
+    }
+
+    dataIdx = 0;
+    struct HiLoTableData hiLoDataInv[ 4 * 4];
+    for (i = 0; i < 4; ++i)
+    {
+        for (j = 0; j < 4; ++j, ++dataIdx)
+        {
+            hiLoDataInv[dataIdx] = highLowTable[invMatr[i][j]];
+        }
+    }
+
+    //Recovering
+
+    auto start_time = chrono::high_resolution_clock::now();
+
+    dataIdx = 0;
+    for (i = 0; i < sameASameLambdaNodeCounter; ++i)
+    {
+        for (j = 0; j < 4; ++j)
+        {
+            for (k = 0; k < 4; ++k, ++dataIdx)
+            {
+                GF_multiply_region_w32_dispatch_512(&GF, (__m256i*)&sameASameLambdaData[i][j][0], (__m256i*)&sameASameLambdaRes[k][0], sameASameLambdaCoeff[i][j][k], &hiLoDataSame[dataIdx]);
+            }
+        }
+    }
+
+    dataIdx = 0;
+    for (i = 0; i < diffASameLambdaNodeCounter; ++i)
+    {
+        for (j = 0; j < 4; ++j)
+        {
+            for (k = 0; k < 4; ++k, ++dataIdx)
+            {
+                GF_multiply_region_w32_dispatch_128(&GF, (__m256i*)&diffASameLambdaData[i][j][0], (__m256i*)&diffASameLambdaRes[diffALambdaIdArray[i]][j][k][0], diffASameLambdaCoeff[i][j][k], &hiLoDataDiff[dataIdx]);
             }
         }
     }
@@ -1568,12 +1608,13 @@ double ext_recover_1_node(unsigned int* pNodesToRecoverIdx, Node* pNodes)
         }
     }
 
+    dataIdx = 0;
     for (i = 0; i < 4; ++i)
     {
-        for (j = 0; j < 4; ++j)
+        for (j = 0; j < 4; ++j, ++dataIdx)
         {
-            GF.multiply_region.w32(&GF, &sameASameLambdaRes[j][0], &recDataRes[i][0], (gf_val_32_t)invMatr[i][j], 512, 1);
-            GF.multiply_region.w32(&GF, &diffARes[j][0], &recDataRes[i][0], (gf_val_32_t)invMatr[i][j], 512, 1);
+            GF_multiply_region_w32_dispatch_512(&GF, (__m256i*)&sameASameLambdaRes[j][0], (__m256i*)&recDataRes[i][0], (gf_val_32_t)invMatr[i][j], &hiLoDataInv[dataIdx]);
+            GF_multiply_region_w32_dispatch_512(&GF, (__m256i*)&diffARes[j][0], (__m256i*)&recDataRes[i][0], (gf_val_32_t)invMatr[i][j], &hiLoDataInv[dataIdx]);
         }
     }
 
@@ -2099,7 +2140,7 @@ int main()
 
 
     printf("1 node recovery check: ");
-    recover_1_node(pNodesToRecoverIdx, pNodes);
+    ext_recover_1_node(pNodesToRecoverIdx, pNodes);
     failFlag = 0;
     for (int i = 0; i < 1; ++i)
     {
@@ -2122,7 +2163,7 @@ int main()
     unsigned int rndId = 0;
 
     printf("\n==Reconstruction speed test:\n");
-    for (nodesToRecoverNum = 2; nodesToRecoverNum < 5; ++nodesToRecoverNum)
+    for (nodesToRecoverNum = 1; nodesToRecoverNum < 2; ++nodesToRecoverNum)
     {
         printf("---- %d nodes reconstruction:\n", nodesToRecoverNum);
         for (int tests = 0; tests < testsNum; ++tests)
@@ -2146,7 +2187,7 @@ int main()
             switch (nodesToRecoverNum)
             {
             case 1:
-                elapsed_time[tests] = recover_1_node(pTestNodesToRecoverIdx, pNodes);
+                elapsed_time[tests] = ext_recover_1_node(pTestNodesToRecoverIdx, pNodes);
                 break;
             case 2:
                 elapsed_time[tests] = ext_recover_2_nodes(pTestNodesToRecoverIdx, pNodes);
