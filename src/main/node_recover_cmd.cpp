@@ -1348,6 +1348,253 @@ double recover_2_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
     return elapsed_time; //(double)elapsed_time.count();
 }
 
+// 1 node recovery procedure extended
+
+uint8_t sameASameLambdaData[30][4][512]; //[NodeId][LambdaId][Data] //512 = 1024/4*(2)
+uint8_t diffASameLambdaData[124][4][128]; //[NodeId][LambdaId][Data] //128 = 256/4*(2)
+
+unsigned int sameASameLambdaNodeCounter;
+unsigned int diffASameLambdaNodeCounter;
+
+unsigned int sameASameLambdaDataCounter[30]; //[NodeId]
+unsigned int diffASameLamdaDataCounter[124][4]; //[NodeId][LambdaId]
+
+uint8_t sameASameLambdaRes[4][512]; //[Pow][Data] //512 = 1024/4*(2)
+uint8_t diffASameLambdaRes[4][4][4][128]; //[AId][LambdaId][Pow][Data] //128 = 256/4*(2)
+
+unsigned int diffASameLambdaResDataCounter[4][4][4]; //[AId][LambdaId][Pow]
+
+unsigned int diffALambdaIdArray[124]; //[NodeId]
+
+uint8_t diffARes[4][512]; //[Pow][Data] //512 = 1024/4*(2)
+
+uint8_t recDataRes[4][512]; //512 = 1024/4*(2)
+
+unsigned int diffALambdaSeq[4][256]; //[AId][subBlockId]
+
+gf_val_32_t sameASameLambdaCoeff[30][4][4]; //[NodeId][LambdaId][Pow]
+gf_val_32_t diffASameLambdaCoeff[124][4][4]; //[NodeId][LambdaId][Pow]
+
+// 1 node recovery procedure extended
+double ext_recover_1_node(unsigned int* pNodesToRecoverIdx, Node* pNodes)
+{
+    // Declarations
+    unsigned int currPos[4] = { 0 }, currLambdasIdx[5] = { 0 };
+    unsigned int nodeToRecIdx = pNodesToRecoverIdx[0];
+    unsigned int nodeToRecAIdx = AIdxArray[nodeToRecIdx];
+
+    unsigned int subBlockIdx = 0, currNodeIdx = 0, currAIdx = 0, tempAIdx = 0, tempLambdaIdx = 0, i = 0, j = 0, k = 0, v = 0;
+
+    fe_type* currData = 0;
+    fe_type* tempData = 0;
+
+    unsigned int posArray[256][4] = { 0 };
+
+    fe_type invMatr[4][4] = { 0 };
+
+    //Initialization
+
+    ext_vand4_inv(invMatr, GF_W16_INLINE_MULT(LOG16, ALOG16, sigmas[nodeToRecIdx], lambdas[nodeToRecAIdx][0]),
+        GF_W16_INLINE_MULT(LOG16, ALOG16, sigmas[nodeToRecIdx], lambdas[nodeToRecAIdx][1]),
+        GF_W16_INLINE_MULT(LOG16, ALOG16, sigmas[nodeToRecIdx], lambdas[nodeToRecAIdx][2]),
+        GF_W16_INLINE_MULT(LOG16, ALOG16, sigmas[nodeToRecIdx], lambdas[nodeToRecAIdx][3]));
+
+
+    for (i = 0; i < 30; ++i)
+    {
+        sameASameLambdaDataCounter[i] = 0;
+    }
+
+    for (i = 0; i < 124; ++i)
+    {
+        diffALambdaIdArray[i] = 0;
+
+        for (j = 0; j < 4; ++j)
+        {
+            diffASameLamdaDataCounter[i][j] = 0;
+        }
+    }
+
+    for (i = 0; i < 4; ++i)
+    {
+        for (j = 0; j < 512; ++j)
+        {
+            sameASameLambdaRes[i][j] = 0;
+            diffARes[i][j] = 0;
+            recDataRes[i][j] = 0;
+        }
+    }
+
+    for (i = 0; i < 4; ++i)
+    {
+        for (j = 0; j < 4; ++j)
+        {
+            for (k = 0; k < 4; ++k)
+            {
+                diffASameLambdaResDataCounter[i][j][k] = 0;
+
+                for (v = 0; v < 128; ++v)
+                {
+                    diffASameLambdaRes[i][j][k][v] = 0;
+                }
+            }
+        }
+    }
+
+    for (subBlockIdx = 0; subBlockIdx < 256; ++subBlockIdx)
+    {
+        curr_pos_get(currPos, currLambdasIdx, nodeToRecAIdx, subBlockIdx);
+
+        posArray[subBlockIdx][0] = currPos[0];
+        posArray[subBlockIdx][1] = currPos[1];
+        posArray[subBlockIdx][2] = currPos[2];
+        posArray[subBlockIdx][3] = currPos[3];
+
+        sameASameLambdaNodeCounter = 0;
+        diffASameLambdaNodeCounter = 0;
+
+        for (currNodeIdx = 0; currNodeIdx < 154; ++currNodeIdx)
+        {
+            if (currNodeIdx != nodeToRecIdx)
+            {
+                currAIdx = AIdxArray[currNodeIdx];
+                if (currAIdx == nodeToRecAIdx)
+                {
+                    for (i = 0; i < 4; ++i)
+                    {
+                        currData = (fe_type*)(&sameASameLambdaData[sameASameLambdaNodeCounter][i][0]);
+                        currData[sameASameLambdaDataCounter[sameASameLambdaNodeCounter]] = pNodes[currNodeIdx].getData(currPos[i]).getElement();
+                    }
+                    ++sameASameLambdaDataCounter[sameASameLambdaNodeCounter];
+                    ++sameASameLambdaNodeCounter;
+                }
+                else
+                {
+                    tempLambdaIdx = currLambdasIdx[currAIdx];
+                    currData = (fe_type*)(&diffASameLambdaData[diffASameLambdaNodeCounter][tempLambdaIdx][0]);
+                    currData[diffASameLamdaDataCounter[diffASameLambdaNodeCounter][tempLambdaIdx]] = pNodes[currNodeIdx].getDataSum(currPos).getElement();
+                    ++diffASameLamdaDataCounter[diffASameLambdaNodeCounter][tempLambdaIdx];
+                    ++diffASameLambdaNodeCounter;
+                }
+            }
+        }
+
+        for (currAIdx = 0; currAIdx < 5; ++currAIdx)
+        {
+            if (currAIdx != nodeToRecAIdx)
+            {
+                tempAIdx = (currAIdx > nodeToRecAIdx) ? (currAIdx - 1) : currAIdx;
+
+                diffALambdaSeq[tempAIdx][subBlockIdx] = currLambdasIdx[currAIdx];
+            }
+        }
+    }
+
+    sameASameLambdaNodeCounter = 0;
+    diffASameLambdaNodeCounter = 0;
+
+    for (currNodeIdx = 0; currNodeIdx < 154; ++currNodeIdx)
+    {
+        if (currNodeIdx != nodeToRecIdx)
+        {
+            currAIdx = AIdxArray[currNodeIdx];
+
+            if (currAIdx == nodeToRecAIdx)
+            {
+                for (i = 0; i < 4; ++i)
+                {
+                    sameASameLambdaCoeff[sameASameLambdaNodeCounter][i][0] = (gf_val_32_t)1;
+                    sameASameLambdaCoeff[sameASameLambdaNodeCounter][i][1] = (gf_val_32_t)GF_W16_INLINE_MULT(LOG16, ALOG16, sigmas[currNodeIdx], lambdas[currAIdx][i]);
+                    sameASameLambdaCoeff[sameASameLambdaNodeCounter][i][2] = (gf_val_32_t)GF_W16_INLINE_MULT(LOG16, ALOG16, sigmas_pow2[currNodeIdx], lambdas_pow2[currAIdx][i]);
+                    sameASameLambdaCoeff[sameASameLambdaNodeCounter][i][3] = (gf_val_32_t)GF_W16_INLINE_MULT(LOG16, ALOG16, sigmas_pow3[currNodeIdx], lambdas_pow3[currAIdx][i]);
+                }
+                ++sameASameLambdaNodeCounter;
+            }
+            else
+            {
+                for (i = 0; i < 4; ++i)
+                {
+                    diffASameLambdaCoeff[diffASameLambdaNodeCounter][i][0] = (gf_val_32_t)1;
+                    diffASameLambdaCoeff[diffASameLambdaNodeCounter][i][1] = (gf_val_32_t)GF_W16_INLINE_MULT(LOG16, ALOG16, sigmas[currNodeIdx], lambdas[currAIdx][i]);
+                    diffASameLambdaCoeff[diffASameLambdaNodeCounter][i][2] = (gf_val_32_t)GF_W16_INLINE_MULT(LOG16, ALOG16, sigmas_pow2[currNodeIdx], lambdas_pow2[currAIdx][i]);
+                    diffASameLambdaCoeff[diffASameLambdaNodeCounter][i][3] = (gf_val_32_t)GF_W16_INLINE_MULT(LOG16, ALOG16, sigmas_pow3[currNodeIdx], lambdas_pow3[currAIdx][i]);
+                }
+                tempAIdx = (currAIdx > nodeToRecAIdx) ? (currAIdx - 1) : currAIdx;
+                diffALambdaIdArray[diffASameLambdaNodeCounter] = tempAIdx;
+                ++diffASameLambdaNodeCounter;
+            }
+        }
+    }
+
+    //Recovering
+
+    auto start_time = chrono::high_resolution_clock::now();
+
+    for (i = 0; i < sameASameLambdaNodeCounter; ++i)
+    {
+        for (j = 0; j < 4; ++j)
+        {
+            for (k = 0; k < 4; ++k)
+            {
+                GF.multiply_region.w32(&GF, &sameASameLambdaData[i][j][0], &sameASameLambdaRes[k][0], sameASameLambdaCoeff[i][j][k], 512, 1);
+            }
+        }
+    }
+
+    for (i = 0; i < diffASameLambdaNodeCounter; ++i)
+    {
+        for (j = 0; j < 4; ++j)
+        {
+            for (k = 0; k < 4; ++k)
+            {
+                GF.multiply_region.w32(&GF, &diffASameLambdaData[i][j][0], &diffASameLambdaRes[diffALambdaIdArray[i]][j][k][0], diffASameLambdaCoeff[i][j][k], 128, 1);
+            }
+        }
+    }
+
+    for (subBlockIdx = 0; subBlockIdx < 256; ++subBlockIdx)
+    {
+        for (i = 0; i < 4; ++i)
+        {
+            currData = (fe_type*)(&diffARes[i][0]);
+
+            for (j = 0; j < 4; ++j)
+            {
+                tempData = (fe_type*)(&diffASameLambdaRes[j][diffALambdaSeq[j][subBlockIdx]][i][0]);
+
+                currData[subBlockIdx] ^= tempData[diffASameLambdaResDataCounter[j][diffALambdaSeq[j][subBlockIdx]][i]];
+                ++diffASameLambdaResDataCounter[j][diffALambdaSeq[j][subBlockIdx]][i];
+            }
+        }
+    }
+
+    for (i = 0; i < 4; ++i)
+    {
+        for (j = 0; j < 4; ++j)
+        {
+            GF.multiply_region.w32(&GF, &sameASameLambdaRes[j][0], &recDataRes[i][0], (gf_val_32_t)invMatr[i][j], 512, 1);
+            GF.multiply_region.w32(&GF, &diffARes[j][0], &recDataRes[i][0], (gf_val_32_t)invMatr[i][j], 512, 1);
+        }
+    }
+
+    for (subBlockIdx = 0; subBlockIdx < 256; ++subBlockIdx)
+    {
+        for (i = 0; i < 4; ++i)
+        {
+            currData = (fe_type*)(&recDataRes[i][0]);
+            pNodes[nodeToRecIdx].setData(posArray[subBlockIdx][i], FieldElement(currData[subBlockIdx]));
+        }
+    }
+
+    auto  end_time = chrono::high_resolution_clock::now();
+    auto  elapsed = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
+    double elapsed_time = std::chrono::duration<double>(elapsed).count();
+
+    return elapsed_time; //(double)elapsed_time.count();
+}
+
+
+
 // 1 node recovery procedure
 double recover_1_node(unsigned int* pNodesToRecoverIdx, Node* pNodes)
 {
