@@ -36,6 +36,46 @@ GF_w16_log_multiply_by_log(struct gf_w16_logtable_data* ltd, gf_val_32_t a, int 
 	return ltd->antilog_tbl[(int)ltd->log_tbl[a] + log_b];
 }
 
+__m128i lowTable[65536][4];
+__m128i highTable[65536][4];
+
+void calcHiLoTables(gf_t* gf)
+{
+	struct gf_w16_logtable_data* ltd;
+	ltd = (struct gf_w16_logtable_data*)((gf_internal_t*)gf->scratch)->private;
+
+	for (int val = 0; val < 65536; ++val)
+	{
+		int logVal = (int)ltd->log_tbl[val];
+
+		uint8_t low[4][16];
+		uint8_t high[4][16];
+
+		low[0][0] = 0;
+		low[1][0] = 0;
+		low[2][0] = 0;
+		low[3][0] = 0;
+
+		high[0][0] = 0;
+		high[1][0] = 0;
+		high[2][0] = 0;
+		high[3][0] = 0;
+
+		for (int j = 1; j < 16; j++) {
+			for (int i = 0; i < 4; i++) {
+				const uint64_t c = (j << (i * 4));
+				const uint64_t prod = GF_w16_log_multiply_by_log(ltd, c, logVal);
+				low[i][j] = (prod & 0xff);
+				high[i][j] = (prod >> 8);
+			}
+		}
+
+		for (int i = 0; i < 4; i++) {
+			lowTable[val][i] = _mm_loadu_si128((__m128i*)low[i]);
+			highTable[val][i] = _mm_loadu_si128((__m128i*)high[i]);
+		}
+	}
+}
 
 void GF_multiply_region_w32(gf_t* gf, uint8_t* src, uint8_t* dest, gf_val_32_t val, int bytes, int xor)
 {
@@ -59,8 +99,8 @@ void GF_multiply_region_w32(gf_t* gf, uint8_t* src, uint8_t* dest, gf_val_32_t v
 	// Нам гарантировано, что val != 0 , так как это случай обрабатывается отдельно
 	int logVal = (int)ltd->log_tbl[val];
 
-	// Пропускаем 0 итерацию цикла, так как в её результате гарантировано получается результат 0 
-	low[0][0] = 0;
+	// Пропускаем 0 итерацию цикла ниже, так как в её результате гарантировано получается результат 0 
+	/*low[0][0] = 0;
 	low[1][0] = 0;
 	low[2][0] = 0;
 	low[3][0] = 0;
@@ -82,6 +122,12 @@ void GF_multiply_region_w32(gf_t* gf, uint8_t* src, uint8_t* dest, gf_val_32_t v
 	for (i = 0; i < 4; i++) {
 		tlow[i] = _mm_loadu_si128((__m128i*)low[i]);
 		thigh[i] = _mm_loadu_si128((__m128i*)high[i]);
+	}
+	*/
+
+	for (i = 0; i < 4; i++) {
+		tlow[i] = _mm_loadu_si128(&lowTable[val][i]);
+		thigh[i] = _mm_loadu_si128(&highTable[val][i]);
 	}
 
 
