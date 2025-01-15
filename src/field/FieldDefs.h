@@ -14,6 +14,7 @@ typedef uint16_t  fe_type; //uint_fast16_t
 
 gf_t GF;
 fe_type *LOG16;
+unsigned int* LOG16_UI;
 fe_type *ALOG16;
 fe_type* DALOG16;
 

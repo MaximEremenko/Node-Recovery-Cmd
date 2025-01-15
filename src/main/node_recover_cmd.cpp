@@ -9,9 +9,9 @@
 #include <list>
 
 #ifdef _WIN32
-  #include "sys/getopt.h"
+#include "sys/getopt.h"
 #else
-  #include <getopt.h>
+#include <getopt.h>
 #endif
 
 #include <stdint.h>
@@ -26,6 +26,9 @@
 //#endif
 
 
+#define _M_IX86 
+#define INTEL_SSSE3 1
+#include <mmintrin.h>
 
 #include "Node.h"
 #include "FieldDefs.h"
@@ -38,6 +41,8 @@ extern "C"
 }
 
 using namespace std;
+
+LogFieldElement LogFieldElement::logOneElement = static_cast<unsigned int>(0);
 
 //=======================================================================================================================================
 //=============================================================== Auxiliary functions ===================================================
@@ -62,6 +67,44 @@ using namespace std;
 //    return (cur_t - *t);
 //}
 
+void ext_vand3_inv(fe_type B[3][3], fe_type a, fe_type b, fe_type c)
+{
+    fe_type ab = a ^ b;
+    fe_type ac = a ^ c;
+    fe_type bc = b ^ c;
+
+    fe_type w0 = GF_W16_INLINE_MULT(LOG16, ALOG16, ab, ac);
+    fe_type w1 = GF_W16_INLINE_MULT(LOG16, ALOG16, ab, bc);
+    fe_type w2 = GF_W16_INLINE_MULT(LOG16, ALOG16, ac, bc);
+
+    B[0][0] = GF_W16_INLINE_MULT(LOG16, ALOG16, b, c);
+    B[0][0] = GF_W16_INLINE_DIV(LOG16, DALOG16, B[0][0], w0);
+    B[0][1] = GF_W16_INLINE_DIV(LOG16, DALOG16, bc, w0);
+    B[0][2] = GF_W16_INLINE_DIV(LOG16, DALOG16, 1, w0);
+
+    B[1][0] = GF_W16_INLINE_MULT(LOG16, ALOG16, a, c);
+    B[1][0] = GF_W16_INLINE_DIV(LOG16, DALOG16, B[1][0], w1);
+    B[1][1] = GF_W16_INLINE_DIV(LOG16, DALOG16, ac, w1);
+    B[1][2] = GF_W16_INLINE_DIV(LOG16, DALOG16, 1, w1);
+
+    B[2][0] = GF_W16_INLINE_MULT(LOG16, ALOG16, a, b);
+    B[2][0] = GF_W16_INLINE_DIV(LOG16, DALOG16, B[2][0], w2);
+    B[2][1] = GF_W16_INLINE_DIV(LOG16, DALOG16, ab, w2);
+    B[2][2] = GF_W16_INLINE_DIV(LOG16, DALOG16, 1, w2);
+}
+
+void ext_vand2_inv(fe_type B[2][2], fe_type a, fe_type b)
+{
+    fe_type w0 = a ^ b;
+
+    B[0][0] = GF_W16_INLINE_DIV(LOG16, DALOG16, b, w0);
+    B[0][1] = GF_W16_INLINE_DIV(LOG16, DALOG16, 1, w0);
+
+    B[1][0] = GF_W16_INLINE_DIV(LOG16, DALOG16, a, w0);
+    B[1][1] = GF_W16_INLINE_DIV(LOG16, DALOG16, 1, w0);
+}
+
+
 void ext_vand4_inv(fe_type B[4][4], fe_type a, fe_type b, fe_type c, fe_type d)
 {
     fe_type ab = a ^ b;
@@ -83,7 +126,7 @@ void ext_vand4_inv(fe_type B[4][4], fe_type a, fe_type b, fe_type c, fe_type d)
 
     fe_type w0_a = GF_W16_INLINE_MULT(LOG16, ALOG16, w0, a);
 
-    fe_type w1 = GF_W16_INLINE_MULT(LOG16, ALOG16, ab, bc); 
+    fe_type w1 = GF_W16_INLINE_MULT(LOG16, ALOG16, ab, bc);
     w1 = GF_W16_INLINE_MULT(LOG16, ALOG16, w1, bd);
 
     fe_type w1_b = GF_W16_INLINE_MULT(LOG16, ALOG16, w1, b);
@@ -93,17 +136,17 @@ void ext_vand4_inv(fe_type B[4][4], fe_type a, fe_type b, fe_type c, fe_type d)
 
     fe_type w2_c = GF_W16_INLINE_MULT(LOG16, ALOG16, w2, c);
 
-    fe_type w3 = GF_W16_INLINE_MULT(LOG16, ALOG16, ad, bd); 
+    fe_type w3 = GF_W16_INLINE_MULT(LOG16, ALOG16, ad, bd);
     w3 = GF_W16_INLINE_MULT(LOG16, ALOG16, w3, cd);
 
     fe_type w3_d = GF_W16_INLINE_MULT(LOG16, ALOG16, w3, d);
 
     B[0][0] = GF_W16_INLINE_DIV(LOG16, DALOG16, a_b_c_d, w0_a);
-    
-    B[0][1] = GF_W16_INLINE_MULT(LOG16, ALOG16, bd, cd)^d_d;
+
+    B[0][1] = GF_W16_INLINE_MULT(LOG16, ALOG16, bd, cd) ^ d_d;
     B[0][1] = GF_W16_INLINE_DIV(LOG16, DALOG16, B[0][1], w0);
-    
-    B[0][2] = GF_W16_INLINE_DIV(LOG16, DALOG16, abcd^a, w0);
+
+    B[0][2] = GF_W16_INLINE_DIV(LOG16, DALOG16, abcd ^ a, w0);
 
     B[0][3] = GF_W16_INLINE_DIV(LOG16, DALOG16, 1, w0);
 
@@ -127,7 +170,7 @@ void ext_vand4_inv(fe_type B[4][4], fe_type a, fe_type b, fe_type c, fe_type d)
 
     B[3][0] = GF_W16_INLINE_DIV(LOG16, DALOG16, a_b_c_d, w3_d);
 
-    B[3][1] = GF_W16_INLINE_MULT(LOG16, ALOG16, ac, bc) ^ d_d;
+    B[3][1] = GF_W16_INLINE_MULT(LOG16, ALOG16, ac, bc) ^ c_c;
     B[3][1] = GF_W16_INLINE_DIV(LOG16, DALOG16, B[3][1], w3);
 
     B[3][2] = GF_W16_INLINE_DIV(LOG16, DALOG16, abcd ^ d, w3);
@@ -136,131 +179,89 @@ void ext_vand4_inv(fe_type B[4][4], fe_type a, fe_type b, fe_type c, fe_type d)
 }
 
 // Inversion of Vandermond matrix of size 4x4
-void vand4_inv(FieldElement B[4][4], FieldElement a, FieldElement b, FieldElement c, FieldElement d)
+void vand4_inv(LogFieldElement B[4][4], FieldElement a, FieldElement b, FieldElement c, FieldElement d)
 {
-    FieldElement ab = a + b;
-    FieldElement ac = a + c;
-    FieldElement ad = a + d;
-    FieldElement bc = b + c;
-    FieldElement bd = b + d;
-    FieldElement cd = c + d;
-    FieldElement abcd = ab + cd;
+    const LogFieldElement abLog = (a + b).toLog();
+    const LogFieldElement acLog = (a + c).toLog();
+    const LogFieldElement adLog = (a + d).toLog();
+    const LogFieldElement bcLog = (b + c).toLog();
+    const LogFieldElement bdLog = (b + d).toLog();
+    const LogFieldElement cdLog = (c + d).toLog();
+    const FieldElement abcd = ((a + b) + (c + d));
 
-    FieldElement a_b_c_d = a * b * c * d;
-    FieldElement c_c = c * c;
-    FieldElement d_d = d * d;
+    const LogFieldElement cLog = c.toLog();
+    const LogFieldElement dLog = d.toLog();
+    const LogFieldElement a_b_c_d = (a.toLog() * b.toLog()) * (cLog * dLog);
+    const LogFieldElement c_c = (cLog * cLog);
+    const FieldElement d_d = (dLog * dLog).toNormal();
 
-    FieldElement inva = ~a;
-    FieldElement invb = ~b;
-    FieldElement invc = ~c;
-    FieldElement invd = ~d;
+    const LogFieldElement inva = ~a.toLog();
+    const LogFieldElement invb = ~b.toLog();
+    const LogFieldElement invc = ~c.toLog();
+    const LogFieldElement invd = ~d.toLog();
 
-    FieldElement w0 = ~(ab * ac * ad);
-    FieldElement w1 = ~(ab * bc * bd);
-    FieldElement w2 = ~(ac * bc * cd);
-    FieldElement w3 = ~(ad * bd * cd);
+    const LogFieldElement w0 = ~(abLog * acLog * adLog);
+    const LogFieldElement w1 = ~(abLog * bcLog * bdLog);
+    const LogFieldElement w2 = ~(acLog * bcLog * cdLog);
+    const LogFieldElement w3 = ~(adLog * bdLog * cdLog);
 
-    B[0][0] = w0 * a_b_c_d * inva;
-    B[0][1] = w0 * (bd * cd + d_d);
-    B[0][2] = w0 * (abcd + a);
+    B[0][0] = (w0 * a_b_c_d * inva);
+    B[0][1] = (w0 * ((bdLog * cdLog).toNormal() + d_d));
+    B[0][2] = (w0 * (abcd + a));
     B[0][3] = w0;
 
-    B[1][0] = w1 * a_b_c_d * invb;
-    B[1][1] = w1 * (ad * cd + d_d);
-    B[1][2] = w1 * (abcd + b);
+    B[1][0] = (w1 * a_b_c_d * invb);
+    B[1][1] = (w1 * ((adLog * cdLog).toNormal() + d_d));
+    B[1][2] = (w1 * (abcd + b));
     B[1][3] = w1;
 
-    B[2][0] = w2 * a_b_c_d * invc;
-    B[2][1] = w2 * (ad * bd + d_d);
-    B[2][2] = w2 * (abcd + c);
+    B[2][0] = ((w2 * a_b_c_d) * invc);
+    B[2][1] = (w2 * ((adLog * bdLog).toNormal() + d_d));
+    B[2][2] = (w2 * (abcd + c));
     B[2][3] = w2;
 
-    B[3][0] = w3 * a_b_c_d * invd;
-    B[3][1] = w3 * (ac * bc + c_c);
-    B[3][2] = w3 * (abcd + d);
+    B[3][0] = ((w3 * a_b_c_d) * invd);
+    B[3][1] = (w3 * ((acLog * bcLog).toNormal() + c_c.toNormal()));
+    B[3][2] = (w3 * (abcd + d));
     B[3][3] = w3;
-}
-
-// Inversion of Vandermond matrix of size 4x4
-void vand4_inv(fe_type B[4][4], FieldElement a, FieldElement b, FieldElement c, FieldElement d)
-{
-    FieldElement ab = a + b;
-    FieldElement ac = a + c;
-    FieldElement ad = a + d;
-    FieldElement bc = b + c;
-    FieldElement bd = b + d;
-    FieldElement cd = c + d;
-    FieldElement abcd = ab + cd;
-
-    FieldElement a_b_c_d = a * b * c * d;
-    FieldElement c_c = c * c;
-    FieldElement d_d = d * d;
-
-    FieldElement inva = ~a;
-    FieldElement invb = ~b;
-    FieldElement invc = ~c;
-    FieldElement invd = ~d;
-
-    FieldElement w0 = ~(ab * ac * ad);
-    FieldElement w1 = ~(ab * bc * bd);
-    FieldElement w2 = ~(ac * bc * cd);
-    FieldElement w3 = ~(ad * bd * cd);
-
-    B[0][0] = (w0 * a_b_c_d * inva).getElement();
-    B[0][1] = (w0 * (bd * cd + d_d)).getElement();
-    B[0][2] = (w0 * (abcd + a)).getElement();
-    B[0][3] = w0.getElement();
-
-    B[1][0] = (w1 * a_b_c_d * invb).getElement();
-    B[1][1] = (w1 * (ad * cd + d_d)).getElement();
-    B[1][2] = (w1 * (abcd + b)).getElement();
-    B[1][3] = w1.getElement();
-
-    B[2][0] = (w2 * a_b_c_d * invc).getElement();
-    B[2][1] = (w2 * (ad * bd + d_d)).getElement();
-    B[2][2] = (w2 * (abcd + c)).getElement();
-    B[2][3] = w2.getElement();
-
-    B[3][0] = (w3 * a_b_c_d * invd).getElement();
-    B[3][1] = (w3 * (ac * bc + c_c)).getElement();
-    B[3][2] = (w3 * (abcd + d)).getElement();
-    B[3][3] = w3.getElement();
 }
 
 
 // Inversion of Vandermond matrix of size 3x3
-void vand3_inv(FieldElement B[3][3], FieldElement a, FieldElement b, FieldElement c)
+void vand3_inv(LogFieldElement B[3][3], FieldElement a, FieldElement b, FieldElement c)
 {
-    FieldElement ab = a + b;
-    FieldElement ac = a + c;
-    FieldElement bc = b + c;
+    const LogFieldElement ab = (a + b).toLog();
+    const LogFieldElement ac = (a + c).toLog();
+    const LogFieldElement bc = (b + c).toLog();
 
-    FieldElement w0 = ~(ab * ac);
-    FieldElement w1 = ~(ab * bc);
-    FieldElement w2 = ~(ac * bc);
+    LogFieldElement w = ~(ab * ac);
 
-    B[0][0] = w0 * b * c;
-    B[0][1] = w0 * bc;
-    B[0][2] = w0;
+    B[0][0] = w * b * c;
+    B[0][1] = w * bc;
+    B[0][2] = w;
 
-    B[1][0] = w1 * a * c;
-    B[1][1] = w1 * ac;
-    B[1][2] = w1;
+    w = ~(ab * bc);
 
-    B[2][0] = w2 * a * b;
-    B[2][1] = w2 * ab;
-    B[2][2] = w2;
+    B[1][0] = w * a * c;
+    B[1][1] = w * ac;
+    B[1][2] = w;
+
+    w = ~(ac * bc);
+
+    B[2][0] = w * a * b;
+    B[2][1] = w * ab;
+    B[2][2] = w;
 }
 
 // Inversion of Vandermond matrix of size 2x2
-void vand2_inv(FieldElement B[2][2], FieldElement a, FieldElement b)
+void vand2_inv(LogFieldElement B[2][2], FieldElement a, FieldElement b)
 {
-    FieldElement w0 = ~(a + b);
+    const LogFieldElement w0 = ~(a + b).toLog();
 
-    B[0][0] = w0 * b;
+    B[0][0] = b.toLog() * w0;
     B[0][1] = w0;
 
-    B[1][0] = w0 * a;
+    B[1][0] = a.toLog() * w0;
     B[1][1] = w0;
 }
 
@@ -319,15 +320,48 @@ uint8_t* resDst[2400];
 gf_val_32_t currCoeff[2400];
 
 
-double ext_recover_4_nodes_core(unsigned int* pNodesToRecoverIdx, Node* pNodes, int lambdasIdx[5], fe_type* pCurrData, double* inneTime1, double* innerTime2)
+unsigned int tempNodeIdCounter[2400];
+unsigned int tempAIdxCounter[2400];
+int tempKCounter[2400];
+int tempJCointer[2400];
+
+const __m128i ZeroFlagInvX4 = _mm_set1_epi16(~ZeroFlag);
+
+inline FieldElement dot4(LogFieldElement* x, LogFieldElement* y)
+{
+    __m128i vx, vy;
+    vx = _mm_loadu_si128((__m128i*)x);
+    vy = _mm_loadu_si128((__m128i*)y);
+
+    const __m128i logProduct = _mm_add_epi32(vx, vy);
+    const __m128i logProductIndex = _mm_and_si128(logProduct, ZeroFlagInvX4);
+
+    fe_type result1 = 0;
+    //fe_type result2 = 0;
+
+    if (!(logProduct.m128i_u32[0] & ZeroFlag))
+        result1 ^= ALOG16[LogFieldElement::correctLog(logProductIndex.m128i_u32[0])];
+    if (!(logProduct.m128i_u32[1] & ZeroFlag))
+        result1 ^= ALOG16[LogFieldElement::correctLog(logProductIndex.m128i_u32[1])];
+    if (!(logProduct.m128i_u32[2] & ZeroFlag))
+        result1 ^= ALOG16[LogFieldElement::correctLog(logProductIndex.m128i_u32[2])];
+    if (!(logProduct.m128i_u32[3] & ZeroFlag))
+        result1 ^= ALOG16[LogFieldElement::correctLog(logProductIndex.m128i_u32[3])];
+
+    return FieldElement(result1);//^ result2);
+}
+
+
+double ext_recover_4_nodes_core(unsigned int* pNodesToRecoverIdx, Node* pNodes, int lambdasIdx[5], fe_type* pCurrData, double* inneTime1, double* innerTime2, struct HiLoTableData *hiLoData)
 {
     uint8_t dstTest[512];
 
     auto start_time = chrono::high_resolution_clock::now();
 
     fe_type currCol[4] = { 0, 0, 0, 0 };
+    LogFieldElement currColLog[4];
     fe_type recData[4] = { 0, 0, 0, 0 };
-    fe_type invMatr[4][4] = { {0,0,0,0}, {0,0,0,0}, {0,0,0,0}, {0,0,0,0} };
+    LogFieldElement invMatr[4][4];
 
 
     unsigned int AIdx = 0, lambdaId = 0, nodeId = 0;
@@ -335,19 +369,19 @@ double ext_recover_4_nodes_core(unsigned int* pNodesToRecoverIdx, Node* pNodes, 
 
     for (int i = 0; i < 2400; ++i)
     {
-    GF_multiply_region_w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
-//        GF.multiply_region.w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
+        GF_multiply_region_w32_dispatch_512(&GF, (__m256i*)dataSrc[i], (__m256i*)resDst[i], currCoeff[i], hiLoData + i);
+//                GF.multiply_region.w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
 
-       
-/*        memcpy(dstTest, resDst[i], 512);
-        GF.multiply_region.w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
-        GF_multiply_region_w32(&GF, dataSrc[i], dstTest, currCoeff[i], 512, 1);
-        if (memcmp(resDst[i], dstTest, 512) != 0)
-        {
-            printf("test failed\n");
-            exit(0);
-        }
-  */      
+
+        /*        memcpy(dstTest, resDst[i], 512);
+                GF.multiply_region.w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
+                GF_multiply_region_w32(&GF, dataSrc[i], dstTest, currCoeff[i], 512, 1);
+                if (memcmp(resDst[i], dstTest, 512) != 0)
+                {
+                    printf("test failed\n");
+                    exit(0);
+                }
+          */
     }
 
     auto  innerTime1End = chrono::high_resolution_clock::now();
@@ -383,35 +417,20 @@ double ext_recover_4_nodes_core(unsigned int* pNodesToRecoverIdx, Node* pNodes, 
             pCurrData = (fe_type*)(&sameLambdaRes[AIdx][lambdaId][3][0]);
             currCol[3] ^= pCurrData[sameLambdaResCounter[AIdx][lambdaId]];
 
+
             ++sameLambdaResCounter[AIdx][lambdaId];
         }
+        currColLog[0] = LogFieldElement(FieldElement(currCol[0]));
+        currColLog[1] = LogFieldElement(FieldElement(currCol[1]));
+        currColLog[2] = LogFieldElement(FieldElement(currCol[2]));
+        currColLog[3] = LogFieldElement(FieldElement(currCol[3]));
 
-        ext_vand4_inv(invMatr, recNodesCoeff[i][0], recNodesCoeff[i][2], recNodesCoeff[i][3], recNodesCoeff[i][4]);
+        vand4_inv(invMatr, FieldElement(recNodesCoeff[i][0]), FieldElement(recNodesCoeff[i][1]), FieldElement(recNodesCoeff[i][2]), FieldElement(recNodesCoeff[i][3]));
 
-        recData[0] = GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[0][0], currCol[0]);
-        recData[0] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[0][1], currCol[1]);
-        recData[0] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[0][2], currCol[2]);
-        recData[0] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[0][3], currCol[3]);
-
-        recData[1] = GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[1][0], currCol[0]);
-        recData[1] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[1][1], currCol[1]);
-        recData[1] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[1][2], currCol[2]);
-        recData[1] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[1][3], currCol[3]);
-
-        recData[2] = GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[2][0], currCol[0]);
-        recData[2] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[2][1], currCol[1]);
-        recData[2] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[2][2], currCol[2]);
-        recData[2] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[2][3], currCol[3]);
-
-        recData[3] = GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[3][0], currCol[0]);
-        recData[3] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[3][1], currCol[1]);
-        recData[3] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[3][2], currCol[2]);
-        recData[3] ^= GF_W16_INLINE_MULT(LOG16, ALOG16, invMatr[3][3], currCol[3]);
-
-        pNodes[pNodesToRecoverIdx[0]].setData(i, recData[0]);
-        pNodes[pNodesToRecoverIdx[1]].setData(i, recData[1]);
-        pNodes[pNodesToRecoverIdx[2]].setData(i, recData[2]);
-        pNodes[pNodesToRecoverIdx[3]].setData(i, recData[3]);
+        pNodes[pNodesToRecoverIdx[0]].setData(i, dot4(&invMatr[0][0], currColLog));
+        pNodes[pNodesToRecoverIdx[1]].setData(i, dot4(&invMatr[1][0], currColLog));
+        pNodes[pNodesToRecoverIdx[2]].setData(i, dot4(&invMatr[2][0], currColLog));
+        pNodes[pNodesToRecoverIdx[3]].setData(i, dot4(&invMatr[3][0], currColLog));
 
     }
     auto innerTime2End = chrono::high_resolution_clock::now();
@@ -433,7 +452,7 @@ double ext_recover_4_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes, doubl
     int lambdasIdx[5] = { 0, 0, 0, 0, 0 };
     int i = 0, j = 0, k = 0, v = 0;
     unsigned int AIdx = 0, lambdaId = 0, nodeId = 0;
-    fe_type *pCurrData = 0, *pCurrRes = 0;
+    fe_type* pCurrData = 0, * pCurrRes = 0;
 
     for (i = 0; i < 4; ++i)
         for (j = 0; j < 154; ++j)
@@ -529,7 +548,19 @@ double ext_recover_4_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes, doubl
         }
     }
 
-    return ext_recover_4_nodes_core(pNodesToRecoverIdx, pNodes, lambdasIdx, pCurrData, inneTime1, innerTime2);
+
+    struct HiLoTableData hiLoData[2400];
+
+    for (i = 0; i < 2400; ++i)
+    {
+        hiLoData[i] = highLowTable[currCoeff[i]];
+    }
+
+    //    for (int x = 0; x < 10; ++x)
+      // ext_recover_4_nodes_core(pNodesToRecoverIdx, pNodes, lambdasIdx, pCurrData, inneTime1, innerTime2, hiLoData);
+
+
+    return ext_recover_4_nodes_core(pNodesToRecoverIdx, pNodes, lambdasIdx, pCurrData, inneTime1, innerTime2, hiLoData);
 }
 
 // Definitions of global auxiliary variables for 2, 3 and 4 nodes recovery procedures
@@ -555,7 +586,8 @@ FieldElement sameACol[4][3];
 double recover_4_nodes_core(unsigned int* pNodesToRecoverIdx, unsigned int ADataNodesNum[5], Node* pNodes)
 {
     FieldElement sumCol[4];
-    FieldElement invMatr[4][4], currRecData[4];
+    LogFieldElement invMatr[4][4];
+    FieldElement currRecData[4];
     FieldElement currSum[5], currSigmaSum[5], currSigmaPow2Sum[5], currSigmaPow3Sum[5];
 
     auto start_time = chrono::high_resolution_clock::now();
@@ -573,22 +605,46 @@ double recover_4_nodes_core(unsigned int* pNodesToRecoverIdx, unsigned int AData
             for (k = 0; k < ADataNodesNum[j]; ++k)
             {
                 currSum[j] += AData[i][j][k];
-                currSigmaSum[j] += ASigmas[j][k] * AData[i][j][k];
-                currSigmaPow2Sum[j] += ASigmasPow2[j][k] * AData[i][j][k];
-                currSigmaPow3Sum[j] += ASigmasPow3[j][k] * AData[i][j][k];
+                currSigmaSum[j] += (ASigmas[j][k].toLog() * AData[i][j][k]).toNormal();
+                currSigmaPow2Sum[j] += (ASigmasPow2[j][k].toLog() * AData[i][j][k]).toNormal();
+                currSigmaPow3Sum[j] += (ASigmasPow3[j][k].toLog() * AData[i][j][k]).toNormal();
             }
         }
         sumCol[0] = currSum[0] + currSum[1] + currSum[2] + currSum[3] + currSum[4];
-        sumCol[1] = currSigmaSum[0] * ACol[i][0][0] + currSigmaSum[1] * ACol[i][1][0] + currSigmaSum[2] * ACol[i][2][0] + currSigmaSum[3] * ACol[i][3][0] + currSigmaSum[4] * ACol[i][4][0];
-        sumCol[2] = currSigmaPow2Sum[0] * ACol[i][0][1] + currSigmaPow2Sum[1] * ACol[i][1][1] + currSigmaPow2Sum[2] * ACol[i][2][1] + currSigmaPow2Sum[3] * ACol[i][3][1] + currSigmaPow2Sum[4] * ACol[i][4][1];
-        sumCol[3] = currSigmaPow3Sum[0] * ACol[i][0][2] + currSigmaPow3Sum[1] * ACol[i][1][2] + currSigmaPow3Sum[2] * ACol[i][2][2] + currSigmaPow3Sum[3] * ACol[i][3][2] + currSigmaPow3Sum[4] * ACol[i][4][2];
+        sumCol[1] = (currSigmaSum[0].toLog() * ACol[i][0][0]).toNormal()
+            + (currSigmaSum[1].toLog() * ACol[i][1][0]).toNormal()
+            + (currSigmaSum[2].toLog() * ACol[i][2][0] ).toNormal()
+            + (currSigmaSum[3].toLog() * ACol[i][3][0]).toNormal()
+            + (currSigmaSum[4].toLog() * ACol[i][4][0]).toNormal();
+        sumCol[2] = (currSigmaPow2Sum[0].toLog() * ACol[i][0][1]).toNormal()
+            + (currSigmaPow2Sum[1].toLog() * ACol[i][1][1]).toNormal()
+            + (currSigmaPow2Sum[2].toLog() * ACol[i][2][1]).toNormal()
+            + (currSigmaPow2Sum[3].toLog() * ACol[i][3][1]).toNormal()
+            + (currSigmaPow2Sum[4].toLog() * ACol[i][4][1]).toNormal();
+        sumCol[3] = (currSigmaPow3Sum[0].toLog() * ACol[i][0][2]).toNormal()
+            + (currSigmaPow3Sum[1].toLog() * ACol[i][1][2]).toNormal()
+            + (currSigmaPow3Sum[2].toLog() * ACol[i][2][2]).toNormal()
+            + (currSigmaPow3Sum[3].toLog() * ACol[i][3][2]).toNormal()
+            + (currSigmaPow3Sum[4].toLog() * ACol[i][4][2]).toNormal();
 
         vand4_inv(invMatr, nodesToRecLambdas[i][0], nodesToRecLambdas[i][1], nodesToRecLambdas[i][2], nodesToRecLambdas[i][3]);
 
-        currRecData[0] = invMatr[0][0] * sumCol[0] + invMatr[0][1] * sumCol[1] + invMatr[0][2] * sumCol[2] + invMatr[0][3] * sumCol[3];
-        currRecData[1] = invMatr[1][0] * sumCol[0] + invMatr[1][1] * sumCol[1] + invMatr[1][2] * sumCol[2] + invMatr[1][3] * sumCol[3];
-        currRecData[2] = invMatr[2][0] * sumCol[0] + invMatr[2][1] * sumCol[1] + invMatr[2][2] * sumCol[2] + invMatr[2][3] * sumCol[3];
-        currRecData[3] = invMatr[3][0] * sumCol[0] + invMatr[3][1] * sumCol[1] + invMatr[3][2] * sumCol[2] + invMatr[3][3] * sumCol[3];
+        currRecData[0] = (invMatr[0][0] * sumCol[0]).toNormal()
+            + (invMatr[0][1] * sumCol[1]).toNormal()
+            + (invMatr[0][2] * sumCol[2]).toNormal()
+            + (invMatr[0][3] * sumCol[3]).toNormal();
+        currRecData[1] = (invMatr[1][0] * sumCol[0]).toNormal()
+            + (invMatr[1][1] * sumCol[1]).toNormal()
+            + (invMatr[1][2] * sumCol[2]).toNormal()
+            + (invMatr[1][3] * sumCol[3]).toNormal();
+        currRecData[2] = (invMatr[2][0] * sumCol[0]).toNormal()
+            + (invMatr[2][1] * sumCol[1]).toNormal()
+            + (invMatr[2][2] * sumCol[2]).toNormal()
+            + (invMatr[2][3] * sumCol[3]).toNormal();
+        currRecData[3] = (invMatr[3][0] * sumCol[0]).toNormal()
+            + (invMatr[3][1] * sumCol[1]).toNormal()
+            + (invMatr[3][2] * sumCol[2]).toNormal()
+            + (invMatr[3][3] * sumCol[3]).toNormal();
 
         pNodes[pNodesToRecoverIdx[0]].setData(i, currRecData[0]);
         pNodes[pNodesToRecoverIdx[1]].setData(i, currRecData[1]);
@@ -607,7 +663,7 @@ double recover_4_nodes_core(unsigned int* pNodesToRecoverIdx, unsigned int AData
 // 4 nodes recovery procedure
 double recover_4_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
 {
-    int lambdasIdx[5] = {0, 0, 0, 0, 0};
+    int lambdasIdx[5] = { 0, 0, 0, 0, 0 };
     unsigned int i = 0, j = 0, k = 0;
     int AIdx, currNodeToRec = 0, currLambdaIdx = 0;
 
@@ -655,19 +711,19 @@ double recover_4_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
         currNodeToRec = pNodesToRecoverIdx[0];
         AIdx = AIdxArray[currNodeToRec];
         currLambdaIdx = lambdasIdx[AIdx];
-        nodesToRecLambdas[i][0] = FieldElement(lambdas[AIdx][currLambdaIdx]) * sigmas[currNodeToRec];
+        nodesToRecLambdas[i][0] = (FieldElement(lambdas[AIdx][currLambdaIdx]).toLog() * sigmas[currNodeToRec]).toNormal();
         currNodeToRec = pNodesToRecoverIdx[1];
         AIdx = AIdxArray[currNodeToRec];
         currLambdaIdx = lambdasIdx[AIdx];
-        nodesToRecLambdas[i][1] = FieldElement(lambdas[AIdx][currLambdaIdx]) * sigmas[currNodeToRec];
+        nodesToRecLambdas[i][1] = (FieldElement(lambdas[AIdx][currLambdaIdx]).toLog() * sigmas[currNodeToRec]).toNormal();
         currNodeToRec = pNodesToRecoverIdx[2];
         AIdx = AIdxArray[currNodeToRec];
         currLambdaIdx = lambdasIdx[AIdx];
-        nodesToRecLambdas[i][2] = FieldElement(lambdas[AIdx][currLambdaIdx]) * sigmas[currNodeToRec];
+        nodesToRecLambdas[i][2] = (FieldElement(lambdas[AIdx][currLambdaIdx]).toLog() * sigmas[currNodeToRec]).toNormal();
         currNodeToRec = pNodesToRecoverIdx[3];
         AIdx = AIdxArray[currNodeToRec];
         currLambdaIdx = lambdasIdx[AIdx];
-        nodesToRecLambdas[i][3] = FieldElement(lambdas[AIdx][currLambdaIdx]) * sigmas[currNodeToRec];
+        nodesToRecLambdas[i][3] = (FieldElement(lambdas[AIdx][currLambdaIdx]).toLog() * sigmas[currNodeToRec]).toNormal();
     }
 
     ADataNodesNum[0] = 0;
@@ -692,10 +748,182 @@ double recover_4_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
         }
     }
 
-   // double start_time = 0;
-    //timer_start(&start_time);
+    // double start_time = 0;
+     //timer_start(&start_time);
 
     return recover_4_nodes_core(pNodesToRecoverIdx, ADataNodesNum, pNodes);
+}
+
+// 3 nodes recovery procedure extended
+double ext_recover_3_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
+{
+    int lambdasIdx[5] = { 0, 0, 0, 0, 0 };
+    int i = 0, j = 0, k = 0, v = 0;
+    unsigned int AIdx = 0, lambdaId = 0, nodeId = 0;
+    fe_type* pCurrData = 0, * pCurrRes = 0;
+    fe_type currCol[3] = { 0, 0, 0 };
+    fe_type recData[3] = { 0, 0, 0 };
+    LogFieldElement invMatr[3][3];
+
+    for (i = 0; i < 4; ++i)
+        for (j = 0; j < 154; ++j)
+            sameLambdaDataCounter[j][i] = 0;
+
+    for (i = 0; i < 512; ++i)
+        for (j = 0; j < 4; ++j)
+            for (k = 0; k < 4; ++k)
+                for (v = 0; v < 5; ++v)
+                    sameLambdaRes[v][k][j][i] = (uint8_t)0;
+
+    for (i = 0; i < 4; ++i)
+        for (j = 0; j < 5; ++j)
+            sameLambdaResCounter[j][i] = 0;
+
+    for (i = 0; i < 5; ++i)
+        availNodesCounter[i] = 0;
+
+    for (i = 0; i < 1024; ++i)
+    {
+        lambdasIdx[0] = (i & 0x3); //11
+        lambdasIdx[1] = (i & 0xC) >> 2; //1100
+        lambdasIdx[2] = (i & 0x30) >> 4; //110000
+        lambdasIdx[3] = (i & 0xC0) >> 6; //11000000
+        lambdasIdx[4] = (i & 0x300) >> 8; //1100000000
+
+
+        for (j = 0; j < 154; ++j)
+        {
+            AIdx = AIdxArray[j];
+            lambdaId = lambdasIdx[AIdx];
+
+            pCurrData = (fe_type*)(&sameLambdaData[j][lambdaId][0]);
+            pCurrData[sameLambdaDataCounter[j][lambdaId]] = pNodes[j].getData(i).getElement();
+            ++sameLambdaDataCounter[j][lambdaId];
+
+            coeffPow[j][lambdaId][0] = (fe_type)1;
+            coeffPow[j][lambdaId][1] = GF_W16_INLINE_MULT(LOG16, ALOG16, sigmas[j], lambdas[AIdx][lambdaId]);
+            coeffPow[j][lambdaId][2] = GF_W16_INLINE_MULT(LOG16, ALOG16, sigmas_pow2[j], lambdas_pow2[AIdx][lambdaId]);
+
+            if (j == pNodesToRecoverIdx[0])
+                recNodesCoeff[i][0] = coeffPow[j][lambdaId][1];
+            else if (j == pNodesToRecoverIdx[1])
+                recNodesCoeff[i][1] = coeffPow[j][lambdaId][1];
+            else if (j == pNodesToRecoverIdx[2])
+                recNodesCoeff[i][2] = coeffPow[j][lambdaId][1];
+        }
+    }
+
+    for (i = 0; i < 154; ++i)
+    {
+        if (i != pNodesToRecoverIdx[0] &&
+            i != pNodesToRecoverIdx[1] &&
+            i != pNodesToRecoverIdx[2])
+        {
+            AIdx = AIdxArray[i];
+
+            availNodes[AIdx][availNodesCounter[AIdx]] = i;
+            ++availNodesCounter[AIdx];
+        }
+    }
+
+    unsigned int counter = 0;
+    for (j = 0; j < 3; ++j)
+    {
+        for (AIdx = 0; AIdx < 5; ++AIdx)
+        {
+            for (i = 0; i < availNodesCounter[AIdx]; ++i)
+            {
+                nodeId = availNodes[AIdx][i];
+
+                for (k = 0; k < 4; ++k)
+                {
+                    dataSrc[counter] = &sameLambdaData[nodeId][k][0];
+                    resDst[counter] = &sameLambdaRes[AIdx][k][j][0];
+                    currCoeff[counter] = coeffPow[nodeId][k][j];
+
+                    tempNodeIdCounter[counter] = nodeId;
+                    tempAIdxCounter[counter] = AIdx;
+                    tempKCounter[counter] = k;
+                    tempJCointer[counter] = j;
+
+                    ++counter;
+                }
+            }
+        }
+    }
+
+    struct HiLoTableData hiLoData[1812];
+
+    for (i = 0; i < 1812; ++i)
+    {
+        hiLoData[i] = highLowTable[currCoeff[i]];
+    }
+
+
+    auto start_time = chrono::high_resolution_clock::now();
+
+    for (i = 0; i < 1812; ++i)
+    {
+        GF_multiply_region_w32_dispatch_512(&GF, (__m256i*)dataSrc[i], (__m256i*)resDst[i], currCoeff[i], hiLoData + i);
+//        GF.multiply_region.w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
+    }
+
+    FieldElement* const nodeToRecover0 = pNodes[pNodesToRecoverIdx[0]].getData();
+    FieldElement* const nodeToRecover1 = pNodes[pNodesToRecoverIdx[1]].getData();
+    FieldElement* const nodeToRecover2 = pNodes[pNodesToRecoverIdx[2]].getData();
+
+    for (i = 0; i < 1024; ++i)
+    {
+        for (j = 0; j < 3; ++j)
+            currCol[j] = 0;
+
+        lambdasIdx[0] = (i & 0x3); //11
+        lambdasIdx[1] = (i & 0xC) >> 2; //1100
+        lambdasIdx[2] = (i & 0x30) >> 4; //110000
+        lambdasIdx[3] = (i & 0xC0) >> 6; //11000000
+        lambdasIdx[4] = (i & 0x300) >> 8; //1100000000
+
+        for (AIdx = 0; AIdx < 5; ++AIdx)
+        {
+            lambdaId = lambdasIdx[AIdx];
+
+            pCurrData = (fe_type*)(&sameLambdaRes[AIdx][lambdaId][0][0]);
+            currCol[0] ^= pCurrData[sameLambdaResCounter[AIdx][lambdaId]];
+
+            pCurrData = (fe_type*)(&sameLambdaRes[AIdx][lambdaId][1][0]);
+            currCol[1] ^= pCurrData[sameLambdaResCounter[AIdx][lambdaId]];
+
+            pCurrData = (fe_type*)(&sameLambdaRes[AIdx][lambdaId][2][0]);
+            currCol[2] ^= pCurrData[sameLambdaResCounter[AIdx][lambdaId]];
+
+            ++sameLambdaResCounter[AIdx][lambdaId];
+        }
+
+        vand3_inv(invMatr, FieldElement(recNodesCoeff[i][0]), FieldElement(recNodesCoeff[i][1]), FieldElement(recNodesCoeff[i][2]));
+
+        recData[0] = (invMatr[0][0] * currCol[0]).toNormalMod().getElement();
+        recData[1] = (invMatr[1][0] * currCol[0]).toNormalMod().getElement();
+        recData[2] = (invMatr[2][0] * currCol[0]).toNormalMod().getElement();
+
+        recData[0] ^= (invMatr[0][1] * currCol[1]).toNormalMod().getElement();
+        recData[1] ^= (invMatr[1][2] * currCol[2]).toNormalMod().getElement();
+        recData[2] ^= (invMatr[2][2] * currCol[2]).toNormalMod().getElement();
+
+        recData[0] ^= (invMatr[0][2] * currCol[2]).toNormalMod().getElement();
+        recData[1] ^= (invMatr[1][1] * currCol[1]).toNormalMod().getElement();
+        recData[2] ^= (invMatr[2][1] * currCol[1]).toNormalMod().getElement();
+
+
+        nodeToRecover0[i] = recData[0];
+        nodeToRecover1[i] = recData[1];
+        nodeToRecover2[i] = recData[2];
+    }
+
+    auto  end_time = chrono::high_resolution_clock::now();
+    auto  elapsed = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
+    double elapsed_time = std::chrono::duration<double>(elapsed).count();
+
+    return elapsed_time;
 }
 
 // 3 nodes recovery procedure
@@ -706,7 +934,8 @@ double recover_3_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
     int AIdx, currNodeToRec = 0, currLambdaIdx = 0;
 
     FieldElement currSum[5], currSigmaSum[5], currSigmaPow2Sum[5], sumCol[3];
-    FieldElement invMatr[3][3], currRecData[3];
+    LogFieldElement invMatr[3][3];
+    FieldElement currRecData[3];
 
     unsigned int ADataNodesNum[5] = { 0, 0, 0, 0, 0 };
 
@@ -748,15 +977,15 @@ double recover_3_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
         currNodeToRec = pNodesToRecoverIdx[0];
         AIdx = AIdxArray[currNodeToRec];
         currLambdaIdx = lambdasIdx[AIdx];
-        nodesToRecLambdas[i][0] = FieldElement(lambdas[AIdx][currLambdaIdx]) * sigmas[currNodeToRec];
+        nodesToRecLambdas[i][0] = (FieldElement(lambdas[AIdx][currLambdaIdx]).toLog() * sigmas[currNodeToRec]).toNormal();
         currNodeToRec = pNodesToRecoverIdx[1];
         AIdx = AIdxArray[currNodeToRec];
         currLambdaIdx = lambdasIdx[AIdx];
-        nodesToRecLambdas[i][1] = FieldElement(lambdas[AIdx][currLambdaIdx]) * sigmas[currNodeToRec];
+        nodesToRecLambdas[i][1] = (FieldElement(lambdas[AIdx][currLambdaIdx]).toLog() * sigmas[currNodeToRec]).toNormal();
         currNodeToRec = pNodesToRecoverIdx[2];
         AIdx = AIdxArray[currNodeToRec];
         currLambdaIdx = lambdasIdx[AIdx];
-        nodesToRecLambdas[i][2] = FieldElement(lambdas[AIdx][currLambdaIdx]) * sigmas[currNodeToRec];
+        nodesToRecLambdas[i][2] = (FieldElement(lambdas[AIdx][currLambdaIdx]).toLog() * sigmas[currNodeToRec]).toNormal();
     }
 
     ADataNodesNum[0] = 0;
@@ -794,25 +1023,205 @@ double recover_3_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
             for (k = 0; k < ADataNodesNum[j]; ++k)
             {
                 currSum[j] += AData[i][j][k];
-                currSigmaSum[j] += ASigmas[j][k] * AData[i][j][k];
-                currSigmaPow2Sum[j] += ASigmasPow2[j][k] * AData[i][j][k];
+                currSigmaSum[j] += (ASigmas[j][k].toLog() * AData[i][j][k]).toNormal();
+                currSigmaPow2Sum[j] += (ASigmasPow2[j][k].toLog() * AData[i][j][k]).toNormal();
             }
         }
 
         sumCol[0] = currSum[0] + currSum[1] + currSum[2] + currSum[3] + currSum[4];
-        sumCol[1] = currSigmaSum[0] * ACol[i][0][0] + currSigmaSum[1] * ACol[i][1][0] + currSigmaSum[2] * ACol[i][2][0] + currSigmaSum[3] * ACol[i][3][0] + currSigmaSum[4] * ACol[i][4][0];
-        sumCol[2] = currSigmaPow2Sum[0] * ACol[i][0][1] + currSigmaPow2Sum[1] * ACol[i][1][1] + currSigmaPow2Sum[2] * ACol[i][2][1] + currSigmaPow2Sum[3] * ACol[i][3][1] + currSigmaPow2Sum[4] * ACol[i][4][1];
+        sumCol[1] = (currSigmaSum[0].toLog() * ACol[i][0][0]).toNormal()
+            + (currSigmaSum[1].toLog() * ACol[i][1][0]).toNormal()
+            + (currSigmaSum[2].toLog() * ACol[i][2][0]).toNormal()
+            + (currSigmaSum[3].toLog() * ACol[i][3][0]).toNormal()
+            + (currSigmaSum[4].toLog() * ACol[i][4][0]).toNormal();
+        sumCol[2] = (currSigmaPow2Sum[0].toLog() * ACol[i][0][1]).toNormal()
+            + (currSigmaPow2Sum[1].toLog() * ACol[i][1][1]).toNormal()
+            + (currSigmaPow2Sum[2].toLog() * ACol[i][2][1]).toNormal()
+            + (currSigmaPow2Sum[3].toLog() * ACol[i][3][1]).toNormal()
+            + (currSigmaPow2Sum[4].toLog() * ACol[i][4][1]).toNormal();
 
         vand3_inv(invMatr, nodesToRecLambdas[i][0], nodesToRecLambdas[i][1], nodesToRecLambdas[i][2]);
 
-        currRecData[0] = invMatr[0][0] * sumCol[0] + invMatr[0][1] * sumCol[1] + invMatr[0][2] * sumCol[2];
-        currRecData[1] = invMatr[1][0] * sumCol[0] + invMatr[1][1] * sumCol[1] + invMatr[1][2] * sumCol[2];
-        currRecData[2] = invMatr[2][0] * sumCol[0] + invMatr[2][1] * sumCol[1] + invMatr[2][2] * sumCol[2];
+        currRecData[0] = (invMatr[0][0] * sumCol[0]).toNormal() + (invMatr[0][1] * sumCol[1]).toNormal() + (invMatr[0][2] * sumCol[2]).toNormal();
+        currRecData[1] = (invMatr[1][0] * sumCol[0]).toNormal() + (invMatr[1][1] * sumCol[1]).toNormal() + (invMatr[1][2] * sumCol[2]).toNormal();
+        currRecData[2] = (invMatr[2][0] * sumCol[0]).toNormal() + (invMatr[2][1] * sumCol[1]).toNormal() + (invMatr[2][2] * sumCol[2]).toNormal();
 
         pNodes[pNodesToRecoverIdx[0]].setData(i, currRecData[0]);
         pNodes[pNodesToRecoverIdx[1]].setData(i, currRecData[1]);
         pNodes[pNodesToRecoverIdx[2]].setData(i, currRecData[2]);
 
+    }
+
+    auto  end_time = chrono::high_resolution_clock::now();
+    auto  elapsed = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
+    double elapsed_time = std::chrono::duration<double>(elapsed).count();
+
+    return elapsed_time;
+}
+
+
+inline fe_type dot2(LogFieldElement* x, LogFieldElement* y)
+{
+    return ((x[0] * y[0]).toNormal() + (x[1] * y[1]).toNormal()).getElement();
+}
+
+// 2 nodes recovery procedure extended
+double ext_recover_2_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
+{
+    int lambdasIdx[5] = { 0, 0, 0, 0, 0 };
+    int i = 0, j = 0, k = 0, v = 0;
+    unsigned int AIdx = 0, lambdaId = 0, nodeId = 0;
+    fe_type* pCurrData = 0, * pCurrRes = 0;
+    fe_type currCol[2] = { 0, 0 };
+    fe_type recData[2] = { 0, 0 };
+    LogFieldElement invMatr[2][2];
+
+    for (i = 0; i < 4; ++i)
+        for (j = 0; j < 154; ++j)
+            sameLambdaDataCounter[j][i] = 0;
+
+    for (i = 0; i < 512; ++i)
+        for (j = 0; j < 4; ++j)
+            for (k = 0; k < 4; ++k)
+                for (v = 0; v < 5; ++v)
+                    sameLambdaRes[v][k][j][i] = (uint8_t)0;
+
+    for (i = 0; i < 4; ++i)
+        for (j = 0; j < 5; ++j)
+            sameLambdaResCounter[j][i] = 0;
+
+    for (i = 0; i < 5; ++i)
+        availNodesCounter[i] = 0;
+
+    for (i = 0; i < 1024; ++i)
+    {
+        lambdasIdx[0] = (i & 0x3); //11
+        lambdasIdx[1] = (i & 0xC) >> 2; //1100
+        lambdasIdx[2] = (i & 0x30) >> 4; //110000
+        lambdasIdx[3] = (i & 0xC0) >> 6; //11000000
+        lambdasIdx[4] = (i & 0x300) >> 8; //1100000000
+
+
+        for (j = 0; j < 154; ++j)
+        {
+            AIdx = AIdxArray[j];
+            lambdaId = lambdasIdx[AIdx];
+
+            pCurrData = (fe_type*)(&sameLambdaData[j][lambdaId][0]);
+            pCurrData[sameLambdaDataCounter[j][lambdaId]] = pNodes[j].getData(i).getElement();
+            ++sameLambdaDataCounter[j][lambdaId];
+
+            coeffPow[j][lambdaId][0] = (fe_type)1;
+            coeffPow[j][lambdaId][1] = GF_W16_INLINE_MULT(LOG16, ALOG16, sigmas[j], lambdas[AIdx][lambdaId]);
+
+            if (j == pNodesToRecoverIdx[0])
+                recNodesCoeff[i][0] = coeffPow[j][lambdaId][1];
+            else if (j == pNodesToRecoverIdx[1])
+                recNodesCoeff[i][1] = coeffPow[j][lambdaId][1];
+        }
+    }
+
+    for (i = 0; i < 154; ++i)
+    {
+        if (i != pNodesToRecoverIdx[0] &&
+            i != pNodesToRecoverIdx[1])
+        {
+            AIdx = AIdxArray[i];
+
+            availNodes[AIdx][availNodesCounter[AIdx]] = i;
+            ++availNodesCounter[AIdx];
+        }
+    }
+
+    unsigned int counter = 0;
+    for (j = 0; j < 2; ++j)
+    {
+        for (AIdx = 0; AIdx < 5; ++AIdx)
+        {
+            for (i = 0; i < availNodesCounter[AIdx]; ++i)
+            {
+                nodeId = availNodes[AIdx][i];
+
+                for (k = 0; k < 4; ++k)
+                {
+                    dataSrc[counter] = &sameLambdaData[nodeId][k][0];
+                    resDst[counter] = &sameLambdaRes[AIdx][k][j][0];
+                    currCoeff[counter] = coeffPow[nodeId][k][j];
+
+                    tempNodeIdCounter[counter] = nodeId;
+                    tempAIdxCounter[counter] = AIdx;
+                    tempKCounter[counter] = k;
+                    tempJCointer[counter] = j;
+
+                    ++counter;
+                }
+            }
+        }
+    }
+
+    struct HiLoTableData hiLoData[1216];
+
+    for (i = 0; i < 1216; ++i)
+    {
+        hiLoData[i] = highLowTable[currCoeff[i]];
+    }
+
+
+    auto start_time = chrono::high_resolution_clock::now();
+
+    for (i = 0; i < 1216; ++i)
+    {
+        GF_multiply_region_w32_dispatch_512(&GF, (__m256i*)dataSrc[i], (__m256i*)resDst[i], currCoeff[i], hiLoData + i);
+        //GF.multiply_region.w32(&GF, dataSrc[i], resDst[i], currCoeff[i], 512, 1);
+    }
+
+    FieldElement* const nodeToRecover0 = pNodes[pNodesToRecoverIdx[0]].getData();
+    FieldElement* const nodeToRecover1 = pNodes[pNodesToRecoverIdx[1]].getData();
+
+    for (i = 0; i < 1024; ++i)
+    {
+        for (j = 0; j < 2; ++j)
+            currCol[j] = 0;
+
+        lambdasIdx[0] = (i & 0x3); //11
+        lambdasIdx[1] = (i & 0xC) >> 2; //1100
+        lambdasIdx[2] = (i & 0x30) >> 4; //110000
+        lambdasIdx[3] = (i & 0xC0) >> 6; //11000000
+        lambdasIdx[4] = (i & 0x300) >> 8; //1100000000
+
+        for (AIdx = 0; AIdx < 5; ++AIdx)
+        {
+            lambdaId = lambdasIdx[AIdx];
+
+            pCurrData = (fe_type*)(&sameLambdaRes[AIdx][lambdaId][0][0]);
+            currCol[0] ^= pCurrData[sameLambdaResCounter[AIdx][lambdaId]];
+
+            pCurrData = (fe_type*)(&sameLambdaRes[AIdx][lambdaId][1][0]);
+            currCol[1] ^= pCurrData[sameLambdaResCounter[AIdx][lambdaId]];
+
+            ++sameLambdaResCounter[AIdx][lambdaId];
+        }
+
+        vand2_inv(invMatr, FieldElement(recNodesCoeff[i][0]), FieldElement(recNodesCoeff[i][1]));
+
+        LogFieldElement logCurrCol[2];
+        logCurrCol[0] = FieldElement(currCol[0]).toLog();
+        logCurrCol[1] = FieldElement(currCol[1]).toLog();
+
+        //recData[0] = dot2(&invMatr[0][0], logCurrCol);
+        ///recData[1] = dot2(&invMatr[1][0], logCurrCol);
+
+        recData[0] = (invMatr[0][0] * logCurrCol[0]).toNormal().getElement();
+        recData[1] = (invMatr[1][0] * logCurrCol[0]).toNormal().getElement();
+
+        recData[0] ^= (invMatr[0][1] * logCurrCol[1]).toNormal().getElement();
+        recData[1] ^= (invMatr[1][1] * logCurrCol[1]).toNormal().getElement();
+
+        nodeToRecover0[i] = recData[0];
+        nodeToRecover1[i] = recData[1];
+
+//        pNodes[pNodesToRecoverIdx[0]].setData(i, FieldElement(recData[0]));
+//        pNodes[pNodesToRecoverIdx[1]].setData(i, FieldElement(recData[1]));
     }
 
     auto  end_time = chrono::high_resolution_clock::now();
@@ -830,7 +1239,8 @@ double recover_2_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
     int AIdx, currNodeToRec = 0, currLambdaIdx = 0;
 
     FieldElement currSum[5], currSigmaSum[5], sumCol[2];
-    FieldElement invMatr[2][2], currRecData[2];
+    LogFieldElement invMatr[2][2];
+    FieldElement currRecData[2];
 
     unsigned int ADataNodesNum[5] = { 0, 0, 0, 0, 0 };
 
@@ -871,11 +1281,11 @@ double recover_2_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
         currNodeToRec = pNodesToRecoverIdx[0];
         AIdx = AIdxArray[currNodeToRec];
         currLambdaIdx = lambdasIdx[AIdx];
-        nodesToRecLambdas[i][0] = FieldElement(lambdas[AIdx][currLambdaIdx]) * sigmas[currNodeToRec];
+        nodesToRecLambdas[i][0] = (FieldElement(lambdas[AIdx][currLambdaIdx]).toLog() * sigmas[currNodeToRec]).toNormal();
         currNodeToRec = pNodesToRecoverIdx[1];
         AIdx = AIdxArray[currNodeToRec];
         currLambdaIdx = lambdasIdx[AIdx];
-        nodesToRecLambdas[i][1] = FieldElement(lambdas[AIdx][currLambdaIdx]) * sigmas[currNodeToRec];
+        nodesToRecLambdas[i][1] = (FieldElement(lambdas[AIdx][currLambdaIdx]).toLog() * sigmas[currNodeToRec]).toNormal();
     }
 
     ADataNodesNum[0] = 0;
@@ -910,17 +1320,21 @@ double recover_2_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
             for (k = 0; k < ADataNodesNum[j]; ++k)
             {
                 currSum[j] += AData[i][j][k];
-                currSigmaSum[j] += ASigmas[j][k] * AData[i][j][k];
+                currSigmaSum[j] += (ASigmas[j][k].toLog() * AData[i][j][k]).toNormal();
             }
         }
 
         sumCol[0] = currSum[0] + currSum[1] + currSum[2] + currSum[3] + currSum[4];
-        sumCol[1] = currSigmaSum[0] * ACol[i][0][0] + currSigmaSum[1] * ACol[i][1][0] + currSigmaSum[2] * ACol[i][2][0] + currSigmaSum[3] * ACol[i][3][0] + currSigmaSum[4] * ACol[i][4][0];
+        sumCol[1] = (currSigmaSum[0].toLog() * ACol[i][0][0]).toNormal()
+            + (currSigmaSum[1].toLog() * ACol[i][1][0]).toNormal()
+            + (currSigmaSum[2].toLog() * ACol[i][2][0]).toNormal()
+            + (currSigmaSum[3].toLog() * ACol[i][3][0]).toNormal()
+            + (currSigmaSum[4].toLog() * ACol[i][4][0]).toNormal();
 
         vand2_inv(invMatr, nodesToRecLambdas[i][0], nodesToRecLambdas[i][1]);
 
-        currRecData[0] = invMatr[0][0] * sumCol[0] + invMatr[0][1] * sumCol[1];
-        currRecData[1] = invMatr[1][0] * sumCol[0] + invMatr[1][1] * sumCol[1];
+        currRecData[0] = (invMatr[0][0] * sumCol[0]).toNormal() + (invMatr[0][1] * sumCol[1]).toNormal();
+        currRecData[1] = (invMatr[1][0] * sumCol[0]).toNormal() + (invMatr[1][1] * sumCol[1]).toNormal();
 
         pNodes[pNodesToRecoverIdx[0]].setData(i, currRecData[0]);
         pNodes[pNodesToRecoverIdx[1]].setData(i, currRecData[1]);
@@ -934,6 +1348,294 @@ double recover_2_nodes(unsigned int* pNodesToRecoverIdx, Node* pNodes)
     return elapsed_time; //(double)elapsed_time.count();
 }
 
+// 1 node recovery procedure extended
+
+uint8_t sameASameLambdaData[30][4][512]; //[NodeId][LambdaId][Data] //512 = 1024/4*(2)
+uint8_t diffASameLambdaData[124][4][128]; //[NodeId][LambdaId][Data] //128 = 256/4*(2)
+
+unsigned int sameASameLambdaNodeCounter;
+unsigned int diffASameLambdaNodeCounter;
+
+unsigned int sameASameLambdaDataCounter[30]; //[NodeId]
+unsigned int diffASameLamdaDataCounter[124][4]; //[NodeId][LambdaId]
+
+uint8_t sameASameLambdaRes[4][512]; //[Pow][Data] //512 = 1024/4*(2)
+uint8_t diffASameLambdaRes[4][4][4][128]; //[AId][LambdaId][Pow][Data] //128 = 256/4*(2)
+
+unsigned int diffASameLambdaResDataCounter[4][4][4]; //[AId][LambdaId][Pow]
+
+unsigned int diffALambdaIdArray[124]; //[NodeId]
+
+uint8_t diffARes[4][512]; //[Pow][Data] //512 = 1024/4*(2)
+
+uint8_t recDataRes[4][512]; //512 = 1024/4*(2)
+
+unsigned int diffALambdaSeq[4][256]; //[AId][subBlockId]
+
+gf_val_32_t sameASameLambdaCoeff[30][4][4]; //[NodeId][LambdaId][Pow]
+gf_val_32_t diffASameLambdaCoeff[124][4][4]; //[NodeId][LambdaId][Pow]
+
+// 1 node recovery procedure extended
+double ext_recover_1_node(unsigned int* pNodesToRecoverIdx, Node* pNodes)
+{
+    // Declarations
+    unsigned int currPos[4] = { 0 }, currLambdasIdx[5] = { 0 };
+    unsigned int nodeToRecIdx = pNodesToRecoverIdx[0];
+    unsigned int nodeToRecAIdx = AIdxArray[nodeToRecIdx];
+
+    unsigned int subBlockIdx = 0, currNodeIdx = 0, currAIdx = 0, tempAIdx = 0, tempLambdaIdx = 0, i = 0, j = 0, k = 0, v = 0;
+
+    fe_type* currData = 0;
+    fe_type* tempData = 0;
+
+    unsigned int posArray[256][4] = { 0 };
+
+    fe_type invMatr[4][4] = { 0 };
+
+    //Initialization
+
+    ext_vand4_inv(invMatr, GF_W16_INLINE_MULT(LOG16, ALOG16, sigmas[nodeToRecIdx], lambdas[nodeToRecAIdx][0]),
+        GF_W16_INLINE_MULT(LOG16, ALOG16, sigmas[nodeToRecIdx], lambdas[nodeToRecAIdx][1]),
+        GF_W16_INLINE_MULT(LOG16, ALOG16, sigmas[nodeToRecIdx], lambdas[nodeToRecAIdx][2]),
+        GF_W16_INLINE_MULT(LOG16, ALOG16, sigmas[nodeToRecIdx], lambdas[nodeToRecAIdx][3]));
+
+
+    for (i = 0; i < 30; ++i)
+    {
+        sameASameLambdaDataCounter[i] = 0;
+    }
+
+    for (i = 0; i < 124; ++i)
+    {
+        diffALambdaIdArray[i] = 0;
+
+        for (j = 0; j < 4; ++j)
+        {
+            diffASameLamdaDataCounter[i][j] = 0;
+        }
+    }
+
+    for (i = 0; i < 4; ++i)
+    {
+        for (j = 0; j < 512; ++j)
+        {
+            sameASameLambdaRes[i][j] = 0;
+            diffARes[i][j] = 0;
+            recDataRes[i][j] = 0;
+        }
+    }
+
+    for (i = 0; i < 4; ++i)
+    {
+        for (j = 0; j < 4; ++j)
+        {
+            for (k = 0; k < 4; ++k)
+            {
+                diffASameLambdaResDataCounter[i][j][k] = 0;
+
+                for (v = 0; v < 128; ++v)
+                {
+                    diffASameLambdaRes[i][j][k][v] = 0;
+                }
+            }
+        }
+    }
+
+    for (subBlockIdx = 0; subBlockIdx < 256; ++subBlockIdx)
+    {
+        curr_pos_get(currPos, currLambdasIdx, nodeToRecAIdx, subBlockIdx);
+
+        posArray[subBlockIdx][0] = currPos[0];
+        posArray[subBlockIdx][1] = currPos[1];
+        posArray[subBlockIdx][2] = currPos[2];
+        posArray[subBlockIdx][3] = currPos[3];
+
+        sameASameLambdaNodeCounter = 0;
+        diffASameLambdaNodeCounter = 0;
+
+        for (currNodeIdx = 0; currNodeIdx < 154; ++currNodeIdx)
+        {
+            if (currNodeIdx != nodeToRecIdx)
+            {
+                currAIdx = AIdxArray[currNodeIdx];
+                if (currAIdx == nodeToRecAIdx)
+                {
+                    for (i = 0; i < 4; ++i)
+                    {
+                        currData = (fe_type*)(&sameASameLambdaData[sameASameLambdaNodeCounter][i][0]);
+                        currData[sameASameLambdaDataCounter[sameASameLambdaNodeCounter]] = pNodes[currNodeIdx].getData(currPos[i]).getElement();
+                    }
+                    ++sameASameLambdaDataCounter[sameASameLambdaNodeCounter];
+                    ++sameASameLambdaNodeCounter;
+                }
+                else
+                {
+                    tempLambdaIdx = currLambdasIdx[currAIdx];
+                    currData = (fe_type*)(&diffASameLambdaData[diffASameLambdaNodeCounter][tempLambdaIdx][0]);
+                    currData[diffASameLamdaDataCounter[diffASameLambdaNodeCounter][tempLambdaIdx]] = pNodes[currNodeIdx].getDataSum(currPos).getElement();
+                    ++diffASameLamdaDataCounter[diffASameLambdaNodeCounter][tempLambdaIdx];
+                    ++diffASameLambdaNodeCounter;
+                }
+            }
+        }
+
+        for (currAIdx = 0; currAIdx < 5; ++currAIdx)
+        {
+            if (currAIdx != nodeToRecAIdx)
+            {
+                tempAIdx = (currAIdx > nodeToRecAIdx) ? (currAIdx - 1) : currAIdx;
+
+                diffALambdaSeq[tempAIdx][subBlockIdx] = currLambdasIdx[currAIdx];
+            }
+        }
+    }
+
+    sameASameLambdaNodeCounter = 0;
+    diffASameLambdaNodeCounter = 0;
+
+    for (currNodeIdx = 0; currNodeIdx < 154; ++currNodeIdx)
+    {
+        if (currNodeIdx != nodeToRecIdx)
+        {
+            currAIdx = AIdxArray[currNodeIdx];
+
+            if (currAIdx == nodeToRecAIdx)
+            {
+                for (i = 0; i < 4; ++i)
+                {
+                    sameASameLambdaCoeff[sameASameLambdaNodeCounter][i][0] = (gf_val_32_t)1;
+                    sameASameLambdaCoeff[sameASameLambdaNodeCounter][i][1] = (gf_val_32_t)GF_W16_INLINE_MULT(LOG16, ALOG16, sigmas[currNodeIdx], lambdas[currAIdx][i]);
+                    sameASameLambdaCoeff[sameASameLambdaNodeCounter][i][2] = (gf_val_32_t)GF_W16_INLINE_MULT(LOG16, ALOG16, sigmas_pow2[currNodeIdx], lambdas_pow2[currAIdx][i]);
+                    sameASameLambdaCoeff[sameASameLambdaNodeCounter][i][3] = (gf_val_32_t)GF_W16_INLINE_MULT(LOG16, ALOG16, sigmas_pow3[currNodeIdx], lambdas_pow3[currAIdx][i]);
+                }
+                ++sameASameLambdaNodeCounter;
+            }
+            else
+            {
+                for (i = 0; i < 4; ++i)
+                {
+                    diffASameLambdaCoeff[diffASameLambdaNodeCounter][i][0] = (gf_val_32_t)1;
+                    diffASameLambdaCoeff[diffASameLambdaNodeCounter][i][1] = (gf_val_32_t)GF_W16_INLINE_MULT(LOG16, ALOG16, sigmas[currNodeIdx], lambdas[currAIdx][i]);
+                    diffASameLambdaCoeff[diffASameLambdaNodeCounter][i][2] = (gf_val_32_t)GF_W16_INLINE_MULT(LOG16, ALOG16, sigmas_pow2[currNodeIdx], lambdas_pow2[currAIdx][i]);
+                    diffASameLambdaCoeff[diffASameLambdaNodeCounter][i][3] = (gf_val_32_t)GF_W16_INLINE_MULT(LOG16, ALOG16, sigmas_pow3[currNodeIdx], lambdas_pow3[currAIdx][i]);
+                }
+                tempAIdx = (currAIdx > nodeToRecAIdx) ? (currAIdx - 1) : currAIdx;
+                diffALambdaIdArray[diffASameLambdaNodeCounter] = tempAIdx;
+                ++diffASameLambdaNodeCounter;
+            }
+        }
+    }
+
+    struct HiLoTableData *hiLoDataSame = new HiLoTableData[(int)sameASameLambdaNodeCounter * 4 * 4];
+
+    int dataIdx = 0;
+    for (i = 0; i < sameASameLambdaNodeCounter; ++i)
+    {
+        for (j = 0; j < 4; ++j)
+        {
+            for (k = 0; k < 4; ++k, ++dataIdx)
+            {
+                hiLoDataSame[dataIdx] = highLowTable[sameASameLambdaCoeff[i][j][k]];
+            }
+        }
+    }
+
+    struct HiLoTableData* hiLoDataDiff = new HiLoTableData[(int)diffASameLambdaNodeCounter * 4 * 4];
+
+    dataIdx = 0;
+    for (i = 0; i < diffASameLambdaNodeCounter; ++i)
+    {
+        for (j = 0; j < 4; ++j)
+        {
+            for (k = 0; k < 4; ++k, ++dataIdx)
+            {
+                hiLoDataDiff[dataIdx] = highLowTable[diffASameLambdaCoeff[i][j][k]];
+            }
+        }
+    }
+
+    dataIdx = 0;
+    struct HiLoTableData hiLoDataInv[ 4 * 4];
+    for (i = 0; i < 4; ++i)
+    {
+        for (j = 0; j < 4; ++j, ++dataIdx)
+        {
+            hiLoDataInv[dataIdx] = highLowTable[invMatr[i][j]];
+        }
+    }
+
+    //Recovering
+
+    auto start_time = chrono::high_resolution_clock::now();
+
+    dataIdx = 0;
+    for (i = 0; i < sameASameLambdaNodeCounter; ++i)
+    {
+        for (j = 0; j < 4; ++j)
+        {
+            for (k = 0; k < 4; ++k, ++dataIdx)
+            {
+                GF_multiply_region_w32_dispatch_512(&GF, (__m256i*)&sameASameLambdaData[i][j][0], (__m256i*)&sameASameLambdaRes[k][0], sameASameLambdaCoeff[i][j][k], &hiLoDataSame[dataIdx]);
+            }
+        }
+    }
+
+    dataIdx = 0;
+    for (i = 0; i < diffASameLambdaNodeCounter; ++i)
+    {
+        for (j = 0; j < 4; ++j)
+        {
+            for (k = 0; k < 4; ++k, ++dataIdx)
+            {
+                GF_multiply_region_w32_dispatch_128(&GF, (__m256i*)&diffASameLambdaData[i][j][0], (__m256i*)&diffASameLambdaRes[diffALambdaIdArray[i]][j][k][0], diffASameLambdaCoeff[i][j][k], &hiLoDataDiff[dataIdx]);
+            }
+        }
+    }
+
+    for (subBlockIdx = 0; subBlockIdx < 256; ++subBlockIdx)
+    {
+        for (i = 0; i < 4; ++i)
+        {
+            currData = (fe_type*)(&diffARes[i][0]);
+
+            for (j = 0; j < 4; ++j)
+            {
+                tempData = (fe_type*)(&diffASameLambdaRes[j][diffALambdaSeq[j][subBlockIdx]][i][0]);
+
+                currData[subBlockIdx] ^= tempData[diffASameLambdaResDataCounter[j][diffALambdaSeq[j][subBlockIdx]][i]];
+                ++diffASameLambdaResDataCounter[j][diffALambdaSeq[j][subBlockIdx]][i];
+            }
+        }
+    }
+
+    dataIdx = 0;
+    for (i = 0; i < 4; ++i)
+    {
+        for (j = 0; j < 4; ++j, ++dataIdx)
+        {
+            GF_multiply_region_w32_dispatch_512(&GF, (__m256i*)&sameASameLambdaRes[j][0], (__m256i*)&recDataRes[i][0], (gf_val_32_t)invMatr[i][j], &hiLoDataInv[dataIdx]);
+            GF_multiply_region_w32_dispatch_512(&GF, (__m256i*)&diffARes[j][0], (__m256i*)&recDataRes[i][0], (gf_val_32_t)invMatr[i][j], &hiLoDataInv[dataIdx]);
+        }
+    }
+
+    for (subBlockIdx = 0; subBlockIdx < 256; ++subBlockIdx)
+    {
+        for (i = 0; i < 4; ++i)
+        {
+            currData = (fe_type*)(&recDataRes[i][0]);
+            pNodes[nodeToRecIdx].setData(posArray[subBlockIdx][i], FieldElement(currData[subBlockIdx]));
+        }
+    }
+
+    auto  end_time = chrono::high_resolution_clock::now();
+    auto  elapsed = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
+    double elapsed_time = std::chrono::duration<double>(elapsed).count();
+
+    return elapsed_time; //(double)elapsed_time.count();
+}
+
+
+
 // 1 node recovery procedure
 double recover_1_node(unsigned int* pNodesToRecoverIdx, Node* pNodes)
 {
@@ -942,14 +1644,15 @@ double recover_1_node(unsigned int* pNodesToRecoverIdx, Node* pNodes)
     unsigned int nodeToRecAIdx = AIdxArray[nodeToRecIdx];
 
     unsigned int subBlockIdx = 0, currNodeIdx = 0, currAIdx = 0, tempAIdx = 0, i = 0, j = 0;
-    
-    FieldElement invMatr[4][4];
+
+    LogFieldElement invMatr[4][4];
     FieldElement nodeToRecSigma = FieldElement(sigmas[nodeToRecIdx]);
 
-    vand4_inv(invMatr, nodeToRecSigma * lambdas[nodeToRecAIdx][0],
-                       nodeToRecSigma * lambdas[nodeToRecAIdx][1],
-                       nodeToRecSigma * lambdas[nodeToRecAIdx][2],
-                       nodeToRecSigma * lambdas[nodeToRecAIdx][3]);
+    vand4_inv(invMatr, 
+        (nodeToRecSigma.toLog() * lambdas[nodeToRecAIdx][0]).toNormal(),
+        (nodeToRecSigma.toLog() * lambdas[nodeToRecAIdx][1]).toNormal(),
+        (nodeToRecSigma.toLog() * lambdas[nodeToRecAIdx][2]).toNormal(),
+        (nodeToRecSigma.toLog() * lambdas[nodeToRecAIdx][3]).toNormal());
 
     FieldElement diffAPartSum[4] = { ZERO_ELEMENT, ZERO_ELEMENT, ZERO_ELEMENT, ZERO_ELEMENT };
     FieldElement sameAPartSum[4] = { ZERO_ELEMENT, ZERO_ELEMENT, ZERO_ELEMENT, ZERO_ELEMENT };
@@ -958,14 +1661,14 @@ double recover_1_node(unsigned int* pNodesToRecoverIdx, Node* pNodes)
     unsigned int diffANodeNum[4] = { 0, 0, 0, 0 };
     unsigned int sameANodeNum = 0;
 
-    unsigned int posArray[256][4] = {0};
+    unsigned int posArray[256][4] = { 0 };
 
     FieldElement recData[4];
 
     for (subBlockIdx = 0; subBlockIdx < 256; ++subBlockIdx)
     {
         curr_pos_get(currPos, currLambdasIdx, nodeToRecAIdx, subBlockIdx);
-        
+
         posArray[subBlockIdx][0] = currPos[0];
         posArray[subBlockIdx][1] = currPos[1];
         posArray[subBlockIdx][2] = currPos[2];
@@ -976,7 +1679,7 @@ double recover_1_node(unsigned int* pNodesToRecoverIdx, Node* pNodes)
         diffANodeNum[1] = 0;
         diffANodeNum[2] = 0;
         diffANodeNum[3] = 0;
-        
+
         for (currNodeIdx = 0; currNodeIdx < 154; ++currNodeIdx)
         {
             if (currNodeIdx != nodeToRecIdx)
@@ -998,7 +1701,7 @@ double recover_1_node(unsigned int* pNodesToRecoverIdx, Node* pNodes)
                 }
             }
         }
-        
+
         for (currAIdx = 0; currAIdx < 5; ++currAIdx)
         {
             if (currAIdx != nodeToRecAIdx)
@@ -1069,15 +1772,15 @@ double recover_1_node(unsigned int* pNodesToRecoverIdx, Node* pNodes)
             for (j = 0; j < diffANodeNum[i]; ++j)
             {
                 diffAPartSum[0] += diffAData[subBlockIdx][i][j];
-                diffAPartSum[1] += diffASigma[i][j] * diffAData[subBlockIdx][i][j];
-                diffAPartSum[2] += diffASigmaPow2[i][j] * diffAData[subBlockIdx][i][j];
-                diffAPartSum[3] += diffASigmaPow3[i][j] * diffAData[subBlockIdx][i][j];
+                diffAPartSum[1] += (diffASigma[i][j].toLog() * diffAData[subBlockIdx][i][j]).toNormal();
+                diffAPartSum[2] += (diffASigmaPow2[i][j].toLog() * diffAData[subBlockIdx][i][j]).toNormal();
+                diffAPartSum[3] += (diffASigmaPow3[i][j].toLog() * diffAData[subBlockIdx][i][j]).toNormal();
             }
 
             ASum[0] += diffAPartSum[0];
-            ASum[1] += diffAPartSum[1] * diffACol[subBlockIdx][i][0];
-            ASum[2] += diffAPartSum[2] * diffACol[subBlockIdx][i][1];
-            ASum[3] += diffAPartSum[3] * diffACol[subBlockIdx][i][2];
+            ASum[1] += (diffAPartSum[1].toLog() * diffACol[subBlockIdx][i][0]).toNormal();
+            ASum[2] += (diffAPartSum[2].toLog() * diffACol[subBlockIdx][i][1]).toNormal();
+            ASum[3] += (diffAPartSum[3].toLog() * diffACol[subBlockIdx][i][2]).toNormal();
         }
 
         for (i = 0; i < sameANodeNum; ++i)
@@ -1089,21 +1792,21 @@ double recover_1_node(unsigned int* pNodesToRecoverIdx, Node* pNodes)
             for (j = 0; j < 4; ++j)
             {
                 sameAPartSum[0] += sameAData[subBlockIdx][j][i];
-                sameAPartSum[1] += sameAData[subBlockIdx][j][i] * sameACol[j][0];
-                sameAPartSum[2] += sameAData[subBlockIdx][j][i] * sameACol[j][1];
-                sameAPartSum[3] += sameAData[subBlockIdx][j][i] * sameACol[j][2];;
+                sameAPartSum[1] += (sameAData[subBlockIdx][j][i].toLog() * sameACol[j][0]).toNormal();
+                sameAPartSum[2] += (sameAData[subBlockIdx][j][i].toLog() * sameACol[j][1]).toNormal();
+                sameAPartSum[3] += (sameAData[subBlockIdx][j][i].toLog() * sameACol[j][2]).toNormal();;
             }
             ASum[0] += sameAPartSum[0];
-            ASum[1] += sameASigma[i] * sameAPartSum[1];
-            ASum[2] += sameASigmaPow2[i] * sameAPartSum[2];
-            ASum[3] += sameASigmaPow3[i] * sameAPartSum[3];
+            ASum[1] += (sameASigma[i].toLog() * sameAPartSum[1]).toNormal();
+            ASum[2] += (sameASigmaPow2[i].toLog() * sameAPartSum[2]).toNormal();
+            ASum[3] += (sameASigmaPow3[i].toLog() * sameAPartSum[3]).toNormal();
         }
 
         for (i = 0; i < 4; ++i)
         {
             for (j = 0; j < 4; ++j)
             {
-                recData[i] += invMatr[i][j] * ASum[j];
+                recData[i] += (invMatr[i][j] * ASum[j]).toNormal();
             }
         }
 
@@ -1145,9 +1848,78 @@ int main()
         exit(1);
     }
 
+    calcHiLoTables(&GF);
+
     LOG16 = gf_w16_get_log_table(&GF);
     ALOG16 = gf_w16_get_mult_alog_table(&GF);
     DALOG16 = gf_w16_get_div_alog_table(&GF);
+
+//    LogFieldElement::logOneElement = FieldElement(1).toLog();
+
+    LOG16_UI = new unsigned int[0x10000];
+
+    for (int i = 0; i <= 0xFFFF; ++i)
+    {
+        LOG16_UI[i] = LOG16[i];
+    }
+    LOG16_UI[0] = ZeroInit;
+
+    for (int i = 0, e = 0; i <= 0xFFFF * 6 && e < 10; ++i)
+    {
+        if ( i % 0xFFFF != LogFieldElement::correctLog(i))
+        {
+            printf("Logspace correction error: i = %x, i mod 0xFFFF = %x != corrected(i) = %x\n",
+                i,
+                i % 0xFFFF,
+                LogFieldElement::correctLog(i));
+            ++e;
+        }
+    }
+
+    fe_type val = 1;
+
+    FieldElement nzData(val);
+
+    //data = val;
+    //nzData = val;
+
+
+    for (; val < 0xFFFF; ++val)
+    {
+        nzData = val;
+
+        fe_type square = GF_W16_INLINE_MULT(LOG16, ALOG16, val, val);
+        fe_type cube = GF_W16_INLINE_MULT(LOG16, ALOG16, square, val);
+
+        if (cube != (nzData.toLog() * nzData.toLog() * nzData.toLog()).toNormal().getElement())
+        {
+            printf("Cube error for 0x%X\n", val);
+            break;
+        }
+    }
+
+/*    for (fe_type x = 0; x < 0xFFFF; ++x)
+    {
+        for (fe_type y = 0; y < 0xFFFF; ++y)
+        {
+            fe_type expected = GF_W16_INLINE_DIV(LOG16, DALOG16, x, y);
+            fe_type actual = (FieldElement(x).toLog() / FieldElement(y).toLog()).toNormal().getElement();
+            if (actual != expected)
+            {
+                printf("Division error: %x / %x should be %x, got %x\n", x, y, expected, actual);
+                break;
+            }
+        }
+        printf("Division test %x\n", x);
+    }
+    */
+
+//    printf("val = %X\n", val);
+    
+    FieldElement nzsq = (nzData.toLog() * nzData.toLog() * nzData.toLog()).toNormal();
+
+//    printf("nzFE: %0X ^3  = %0X\n", nzData.getElement(), nzsq.getElement());
+
 
 
     /*fe_type* currData = (fe_type*)(&src[0]);
@@ -1195,7 +1967,8 @@ int main()
     }
 
     unsigned int pNodesToRecoverIdx[4] = { 150, 151, 152, 153 };
-    recover_4_nodes(pNodesToRecoverIdx, pNodes);
+    //recover_4_nodes(pNodesToRecoverIdx, pNodes);
+    ext_recover_4_nodes(pNodesToRecoverIdx, pNodes, &inner_time1[0], &inner_time2[0]);
     printf("Encoding: Done!\n");
 
     printf("Code word check: ");
@@ -1224,7 +1997,7 @@ int main()
             int AIdx = AIdxArray[i];
             int currLambdaIdx = lambdasIdx[AIdx];
 
-            S = S + FieldElement(lambdas[AIdx][currLambdaIdx]) * FieldElement(sigmas[i]) * pNodes[i].getData(j);
+            S = S + (FieldElement(lambdas[AIdx][currLambdaIdx]).toLog() * FieldElement(sigmas[i]) * pNodes[i].getData(j)).toNormal();
         }
 
         if (S.getElement() != 0)
@@ -1235,7 +2008,7 @@ int main()
             int AIdx = AIdxArray[i];
             int currLambdaIdx = lambdasIdx[AIdx];
 
-            S = S + FieldElement(lambdas_pow2[AIdx][currLambdaIdx]) * FieldElement(sigmas_pow2[i]) * pNodes[i].getData(j);
+            S = S + (FieldElement(lambdas_pow2[AIdx][currLambdaIdx]).toLog() * FieldElement(sigmas_pow2[i]) * pNodes[i].getData(j)).toNormal();
         }
 
         if (S.getElement() != 0)
@@ -1246,7 +2019,7 @@ int main()
             int AIdx = AIdxArray[i];
             int currLambdaIdx = lambdasIdx[AIdx];
 
-            S = S + FieldElement(lambdas_pow3[AIdx][currLambdaIdx]) * FieldElement(sigmas_pow3[i]) * pNodes[i].getData(j);
+            S = S + (FieldElement(lambdas_pow3[AIdx][currLambdaIdx]).toLog() * FieldElement(sigmas_pow3[i]) * pNodes[i].getData(j)).toNormal();
         }
 
         if (S.getElement() != 0)
@@ -1261,12 +2034,12 @@ int main()
     {
         pTestNodes[i] = pNodes[pNodesToRecoverIdx[i]];
         for (int j = 0; j < 1024; ++j)
-            pNodes[pNodesToRecoverIdx[i]].setData(j, 0);
+            pNodes[pNodesToRecoverIdx[i]].setData(j, FieldElement(0));
     }
 
     printf("4 nodes ext recovery check: ");
     double time1, time2;
-    ext_recover_4_nodes(pNodesToRecoverIdx, pNodes, &time1, & time2);
+    ext_recover_4_nodes(pNodesToRecoverIdx, pNodes, &time1, &time2);
 
     failFlag = 0;
     for (int i = 0; i < 4; ++i)
@@ -1284,6 +2057,12 @@ int main()
 
 
 
+    for (int i = 0; i < 4; ++i)
+    {
+        pTestNodes[i] = pNodes[pNodesToRecoverIdx[i]];
+        for (int j = 0; j < 1024; ++j)
+            pNodes[pNodesToRecoverIdx[i]].setData(j, FieldElement(0));
+    }
 
     printf("4 nodes recovery check: ");
     recover_4_nodes(pNodesToRecoverIdx, pNodes);
@@ -1304,9 +2083,16 @@ int main()
     for (int i = 0; i < 4; ++i)
         pTestNodes[i] = pNodes[pNodesToRecoverIdx[i]];
 
+    for (int i = 0; i < 3; ++i)
+    {
+        pTestNodes[i] = pNodes[pNodesToRecoverIdx[i]];
+        for (int j = 0; j < 1024; ++j)
+            pNodes[pNodesToRecoverIdx[i]].setData(j, FieldElement(0));
+    }
 
-    printf("3 nodes recovery check: ");
-    recover_3_nodes(pNodesToRecoverIdx, pNodes);
+
+    printf("3 nodes ext recovery check: ");
+    ext_recover_3_nodes(pNodesToRecoverIdx, pNodes);
     failFlag = 0;
     for (int i = 0; i < 3; ++i)
     {
@@ -1321,8 +2107,16 @@ int main()
     else
         printf("PASS!\n");
 
-    printf("2 nodes recovery check: ");
-    recover_2_nodes(pNodesToRecoverIdx, pNodes);
+    for (int i = 0; i < 2; ++i)
+    {
+        pTestNodes[i] = pNodes[pNodesToRecoverIdx[i]];
+        for (int j = 0; j < 1024; ++j)
+            pNodes[pNodesToRecoverIdx[i]].setData(j, FieldElement(0));
+    }
+
+
+    printf("2 nodes ext recovery check: ");
+    ext_recover_2_nodes(pNodesToRecoverIdx, pNodes);
     failFlag = 0;
     for (int i = 0; i < 2; ++i)
     {
@@ -1337,8 +2131,16 @@ int main()
     else
         printf("PASS!\n");
 
+    for (int i = 0; i < 1; ++i)
+    {
+        pTestNodes[i] = pNodes[pNodesToRecoverIdx[i]];
+        for (int j = 0; j < 1024; ++j)
+            pNodes[pNodesToRecoverIdx[i]].setData(j, FieldElement(0));
+    }
+
+
     printf("1 node recovery check: ");
-    recover_1_node(pNodesToRecoverIdx, pNodes);
+    ext_recover_1_node(pNodesToRecoverIdx, pNodes);
     failFlag = 0;
     for (int i = 0; i < 1; ++i)
     {
@@ -1361,7 +2163,7 @@ int main()
     unsigned int rndId = 0;
 
     printf("\n==Reconstruction speed test:\n");
-    for (nodesToRecoverNum = 4; nodesToRecoverNum < 6; ++nodesToRecoverNum)
+    for (nodesToRecoverNum = 1; nodesToRecoverNum < 2; ++nodesToRecoverNum)
     {
         printf("---- %d nodes reconstruction:\n", nodesToRecoverNum);
         for (int tests = 0; tests < testsNum; ++tests)
@@ -1376,7 +2178,7 @@ int main()
                 }
                 pNodes[i] = Node(FieldElement(sigmas[i]), testData);
             }
-            recover_4_nodes(pNodesToRecoverIdx, pNodes);
+            ext_recover_4_nodes(pNodesToRecoverIdx, pNodes, &(inner_time1[tests]), &(inner_time2[tests]));
 
             rndId = rand() % 154;
             for (unsigned int i = 0; i < 4; ++i)
@@ -1385,18 +2187,15 @@ int main()
             switch (nodesToRecoverNum)
             {
             case 1:
-                elapsed_time[tests] = recover_1_node(pTestNodesToRecoverIdx, pNodes);
+                elapsed_time[tests] = ext_recover_1_node(pTestNodesToRecoverIdx, pNodes);
                 break;
             case 2:
-                elapsed_time[tests] = recover_2_nodes(pTestNodesToRecoverIdx, pNodes);
+                elapsed_time[tests] = ext_recover_2_nodes(pTestNodesToRecoverIdx, pNodes);
                 break;
             case 3:
-                elapsed_time[tests] = recover_3_nodes(pTestNodesToRecoverIdx, pNodes);
+                elapsed_time[tests] = ext_recover_3_nodes(pTestNodesToRecoverIdx, pNodes);
                 break;
             case 4:
-                elapsed_time[tests] = recover_4_nodes(pTestNodesToRecoverIdx, pNodes);
-                break;
-            case 5:
                 elapsed_time[tests] = ext_recover_4_nodes(pTestNodesToRecoverIdx, pNodes, &(inner_time1[tests]), &(inner_time2[tests]));
                 break;
             default:
@@ -1409,6 +2208,18 @@ int main()
         double whole_elapsed_time = 0, max_elapsed_time = 0, min_elapsed_time = 1000;
         double whole_inner_time1 = 0, whole_inner_time2 = 0;
 
+ /*       for (int k = 0; k < testsNum / 1000; ++k)
+        {
+            whole_elapsed_time = 0;
+            for (int i = 0; i < 1000; ++i)
+            {
+                whole_elapsed_time += elapsed_time[k*1000 + i];
+            }
+            printf("%g ", ((double)(nodesToRecoverNum) * 1024 * 16 * 1000) / (whole_elapsed_time * 1e6));
+        }
+        printf("\n");
+        whole_elapsed_time = 0; */
+
         for (int i = 0; i < testsNum; ++i)
         {
             whole_elapsed_time += elapsed_time[i];
@@ -1419,15 +2230,16 @@ int main()
             if (elapsed_time[i] > max_elapsed_time)
                 max_elapsed_time = elapsed_time[i];
         }
-        printf("Av. elapsed time: %f usec\n", (whole_elapsed_time * 1e6) / testsNum);
-        printf("  min. elapsed time: %f usec\n", min_elapsed_time * 1e6);
-        printf("  max. elapsed time: %f usec\n", max_elapsed_time * 1e6);
-        printf("Inner time 1: %f usec\n", (whole_inner_time1 * 1e6) / testsNum);
-        printf("Inner time 2: %f usec\n", (whole_inner_time2 * 1e6) / testsNum);
+//        printf("Av. elapsed time: %f usec\n", (whole_elapsed_time * 1e6) / testsNum);
+//        printf("  min. elapsed time: %f usec\n", min_elapsed_time * 1e6);
+//        printf("  max. elapsed time: %f usec\n", max_elapsed_time * 1e6);
+//        printf("Inner time 1: %f usec\n", (whole_inner_time1 * 1e6) / testsNum);
+//        printf("Inner time 2: %f usec\n", (whole_inner_time2 * 1e6) / testsNum);
         printf("Av. speed: %g Mb/s\n", ((double)(nodesToRecoverNum) * 1024 * 16 * testsNum) / (whole_elapsed_time * 1e6));
-        printf("  max. speed: %g Mb/s\n", ((double)(nodesToRecoverNum) * 1024 * 16) / (min_elapsed_time * 1e6));
-        printf("  min. speed: %g Mb/s\n", ((double)(nodesToRecoverNum) * 1024 * 16) / (max_elapsed_time * 1e6));
+//        printf("  max. speed: %g Mb/s\n", ((double)(nodesToRecoverNum) * 1024 * 16) / (min_elapsed_time * 1e6));
+        //printf("  min. speed: %g Mb/s\n", ((double)(nodesToRecoverNum) * 1024 * 16) / (max_elapsed_time * 1e6));
     }
 
+    printf("max log 0x%X", maxLog);
     return 0;
 }
